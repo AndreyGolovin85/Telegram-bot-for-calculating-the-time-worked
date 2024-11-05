@@ -3,6 +3,7 @@ import asyncio
 from aiogram import Bot, types, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.filters.command import Command, CommandObject
+from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.deep_linking import create_start_link
@@ -35,6 +36,8 @@ async def cmd_help(message: types.Message):
 @dispatcher.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject):
     if command.args == setting.ACCESS_KEY:
+        is_admin = message.chat.id == ADMIN_ID
+        await set_commands(is_admin)
         await message.answer(
             "Привет! Я бот для записи и подсчета отработанных часов.\n\n"
             "Чтобы начать запись, отправьте команду /write_work_time.\n"
@@ -73,8 +76,22 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
         "Проверьте данные и подтвердите.\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
-        f"Всего отработано: {work_time['total_hours']}.{work_time['total_minutes']}"
+        f"Всего отработано: {work_time['total_hours']}.{work_time['total_minutes']} часов."
     )
+
+
+async def set_commands(is_admin):
+    if is_admin:
+        commands = [
+            BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
+        ]
+        await bot.set_my_commands(commands, BotCommandScopeChat(chat_id=ADMIN_ID))
+
+    else:
+        commands = [
+            BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
+        ]
+        await bot.set_my_commands(commands, BotCommandScopeDefault())
 
 
 async def main():
