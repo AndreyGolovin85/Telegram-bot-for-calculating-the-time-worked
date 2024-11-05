@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
+from utils import time_valid, count_work_time
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
@@ -36,12 +37,12 @@ async def cmd_start(message: types.Message, command: CommandObject):
     if command.args == setting.ACCESS_KEY:
         await message.answer(
             "Привет! Я бот для записи и подсчета отработанных часов.\n\n"
-            "Чтобы начать запись, отправьте команду /start_work.\n"
+            "Чтобы начать запись, отправьте команду /write_work_time.\n"
             "Или воспользуйтесь помощью по командам /help."
         )
 
 
-@dispatcher.message(Command("start_work"))
+@dispatcher.message(Command("write_work_time"))
 async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
     await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
@@ -50,7 +51,9 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
 @dispatcher.message(TimeTracking.start_time)
 async def process_name_and_department(message: types.Message, state: FSMContext) -> None:
     start_time = message.text
-    await message.reply(f"Время начала работы {start_time}.")
+    if time_valid(start_time) is False:
+        await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
+        return
     await state.update_data(start_time=start_time)
     await message.reply("Отправьте время окончания работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.end_time)
@@ -59,16 +62,18 @@ async def process_name_and_department(message: types.Message, state: FSMContext)
 @dispatcher.message(TimeTracking.end_time)
 async def process_department(message: types.Message, state: FSMContext) -> None:
     end_time = message.text
-    if end_time is None:
-        await message.reply("Неверный формат. Введите время.")
+    if time_valid(end_time) is False:
+        await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
         return
     await state.update_data(end_time=end_time)
     data = await state.get_data()
+    work_time = count_work_time(data.get('start_time'), data.get('end_time'))
 
     await message.reply(
         "Проверьте данные и подтвердите.\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
+        f"Всего отработано: {work_time['total_hours']}.{work_time['total_minutes']}"
     )
 
 

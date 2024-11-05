@@ -22,8 +22,8 @@ def setup_logging(log_file, level=logging.INFO):
     logging.basicConfig(
         level=level,
         format="[%(asctime)s] - %(filename)s:%(lineno)d #%(levelname)-s - %(name)s - %(message)s",
-        filename=log_file,
-        filemode="w",
+        #filename=log_file,
+        #filemode="w",
     )
 
     if not API_TOKEN or not ADMIN_ID or not ACCESS_KEY:
@@ -33,7 +33,3 @@ def setup_logging(log_file, level=logging.INFO):
 
 now = datetime.now()
 year = now.strftime("%Y")
-
-month_dict = {"yanvar": "Январь", "fevral": "Февраль", "mart": "Март", "aprel": "Апрель", "maj": "Май", "iyun": "Июнь",
-              "iyul": "Июль", "avgust": "Август", "sentyabr": "Сентябрь", "oktbyar": "Октябрь", "noyabr": "Ноябрь",
-              "dekabr": "Декабрь"}
