@@ -5,19 +5,14 @@ from aiogram.enums import ParseMode
 from aiogram.filters.command import Command, CommandObject
 from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
-from utils import time_valid, count_work_time
+from custom_types import TimeTracking
+from utils import time_valid, count_work_time, register_user
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
-
-
-class TimeTracking(StatesGroup):
-    start_time = State()
-    end_time = State()
 
 
 async def generate_start_link(our_bot: Bot):
@@ -36,7 +31,11 @@ async def cmd_help(message: types.Message):
 @dispatcher.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject):
     if command.args == setting.ACCESS_KEY:
+        chat_id = message.chat.id
         is_admin = message.chat.id == ADMIN_ID
+        first_name = message.from_user.first_name
+        last_name = message.from_user.last_name
+        user = await register_user(user_uid=chat_id, first_name=first_name, last_name=last_name)
         await set_commands(is_admin)
         await message.answer(
             "Привет! Я бот для записи и подсчета отработанных часов.\n\n"
