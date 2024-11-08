@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from models import User, Session
+from models import User, Session, TimeWork
 
-from custom_types import UserDTO
+from custom_types import UserDTO, TimeWorkDTO
 
 
 def time_valid(input_time: str) -> bool:
@@ -63,3 +63,19 @@ def add_user(user_data: UserDTO) -> User:
         session.add(user)
         session.commit()
         return user
+
+
+def add_work_time(time_data: TimeWorkDTO) -> int:
+    with Session() as session:
+        new_time = TimeWork(
+            user_uid=time_data.user_uid,
+            work_date=time_data.work_date,
+            work_start=time_data.work_start,
+            work_finish=time_data.work_finish,
+            work_total=time_data.work_total,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        session.add(new_time)
+        session.commit()
+        return new_time.id
