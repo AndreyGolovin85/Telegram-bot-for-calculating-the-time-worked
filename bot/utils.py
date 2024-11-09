@@ -65,6 +65,16 @@ def add_user(user_data: UserDTO) -> User:
         return user
 
 
+def work_time_data(user_uid: int, work_date: str, work_start: str, work_finish: str, work_total: float) -> TimeWorkDTO:
+    return TimeWorkDTO(user_uid=user_uid, work_date=work_date, work_start=work_start, work_finish=work_finish,
+                       work_total=work_total)
+
+
+async def create_work_time(user_uid: int, work_date: str, work_start: str, work_finish: str, work_total: float):
+    time_data = work_time_data(user_uid, work_date, work_start, work_finish, work_total)
+    add_work_time(time_data)
+
+
 def add_work_time(time_data: TimeWorkDTO) -> int:
     with Session() as session:
         new_time = TimeWork(
