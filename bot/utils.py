@@ -16,7 +16,7 @@ def time_valid(input_time: str) -> bool:
     return False
 
 
-def count_work_time(start_time: str, end_time: str) -> dict:
+def count_work_time(start_time: str, end_time: str) -> float:
     if start_time and end_time:
         # Вычисляем отработанное время
         start_hours, start_minutes = map(int, start_time.split(':'))
@@ -28,7 +28,7 @@ def count_work_time(start_time: str, end_time: str) -> dict:
             total_hours = total_hours
         else:
             total_hours -= 1
-        return {"total_hours": total_hours, "total_minutes": total_minutes}
+        return float(f"{total_hours}.{total_minutes}")
 
 
 def check_user_registration(user_uid: int) -> User | None:

@@ -35,7 +35,7 @@ class TimeWork(Base, sessionmaker):
 
     user_uid: Mapped[int] = mapped_column(Integer, ForeignKey("users.user_uid"))
     user: Mapped["User"] = relationship("User", back_populates="time_works", init=False)
-    work_date: Mapped[str] = mapped_column(String(12))
+    work_date: Mapped[str] = mapped_column(String(12), default=None)
     work_start: Mapped[str] = mapped_column(String(10))
     work_finish: Mapped[str] = mapped_column(String(10))
     work_total: Mapped[float] = mapped_column(Float)
