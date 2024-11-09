@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from models import User, Session
+from models import User, Session, TimeWork
 
-from custom_types import UserDTO
+from custom_types import UserDTO, TimeWorkDTO
 
 
 def time_valid(input_time: str) -> bool:
@@ -16,7 +16,7 @@ def time_valid(input_time: str) -> bool:
     return False
 
 
-def count_work_time(start_time: str, end_time: str) -> dict:
+def count_work_time(start_time: str, end_time: str) -> float:
     if start_time and end_time:
         # Вычисляем отработанное время
         start_hours, start_minutes = map(int, start_time.split(':'))
@@ -28,7 +28,7 @@ def count_work_time(start_time: str, end_time: str) -> dict:
             total_hours = total_hours
         else:
             total_hours -= 1
-        return {"total_hours": total_hours, "total_minutes": total_minutes}
+        return float(f"{total_hours}.{total_minutes}")
 
 
 def check_user_registration(user_uid: int) -> User | None:
@@ -63,3 +63,29 @@ def add_user(user_data: UserDTO) -> User:
         session.add(user)
         session.commit()
         return user
+
+
+def work_time_data(user_uid: int, work_date: str, work_start: str, work_finish: str, work_total: float) -> TimeWorkDTO:
+    return TimeWorkDTO(user_uid=user_uid, work_date=work_date, work_start=work_start, work_finish=work_finish,
+                       work_total=work_total)
+
+
+async def create_work_time(user_uid: int, work_date: str, work_start: str, work_finish: str, work_total: float):
+    time_data = work_time_data(user_uid, work_date, work_start, work_finish, work_total)
+    add_work_time(time_data)
+
+
+def add_work_time(time_data: TimeWorkDTO) -> int:
+    with Session() as session:
+        new_time = TimeWork(
+            user_uid=time_data.user_uid,
+            work_date=time_data.work_date,
+            work_start=time_data.work_start,
+            work_finish=time_data.work_finish,
+            work_total=time_data.work_total,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        session.add(new_time)
+        session.commit()
+        return new_time.id

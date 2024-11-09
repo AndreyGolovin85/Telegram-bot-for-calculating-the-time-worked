@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking
-from utils import time_valid, count_work_time, register_user
+from utils import time_valid, count_work_time, register_user, create_work_time
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
@@ -63,19 +63,23 @@ async def process_name_and_department(message: types.Message, state: FSMContext)
 
 @dispatcher.message(TimeTracking.end_time)
 async def process_department(message: types.Message, state: FSMContext) -> None:
+    chat_id = message.chat.id
     end_time = message.text
     if time_valid(end_time) is False:
         await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
         return
     await state.update_data(end_time=end_time)
     data = await state.get_data()
+    start_time = data.get('start_time')
     work_time = count_work_time(data.get('start_time'), data.get('end_time'))
+    work_date = "1.05.2024"
+    await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
     await message.reply(
-        "Проверьте данные и подтвердите.\n"
+        "Вы отработали:\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
-        f"Всего отработано: {work_time['total_hours']}.{work_time['total_minutes']} часов."
+        f"Всего отработано: {work_time} часов."
     )
 
 
