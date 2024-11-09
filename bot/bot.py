@@ -76,7 +76,7 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
     await message.reply(
-        "Проверьте данные и подтвердите.\n"
+        "Вы отработали:\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
         f"Всего отработано: {work_time} часов."
