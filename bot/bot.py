@@ -76,7 +76,7 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
     start_time = data.get("start_time")
     work_time = count_work_time(data.get("start_time"), data.get("end_time"))
     current_date = setting.now
-    work_date = current_date.strftime("%d/%A/%B/%Y")
+    work_date = current_date.strftime("%d-%m-%Y")
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
     await message.reply(
