@@ -1,4 +1,6 @@
 import asyncio
+from datetime import date
+import locale
 
 from aiogram import Bot, types, Dispatcher
 from aiogram.enums import ParseMode
@@ -13,6 +15,7 @@ from utils import time_valid, count_work_time, register_user, create_work_time
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
+locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 
 
 async def generate_start_link(our_bot: Bot):
@@ -70,16 +73,17 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
         return
     await state.update_data(end_time=end_time)
     data = await state.get_data()
-    start_time = data.get('start_time')
-    work_time = count_work_time(data.get('start_time'), data.get('end_time'))
-    work_date = "1.05.2024"
+    start_time = data.get("start_time")
+    work_time = count_work_time(data.get("start_time"), data.get("end_time"))
+    current_date = setting.now
+    work_date = current_date.strftime("%d/%A/%B/%Y")
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
     await message.reply(
         "Вы отработали:\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
-        f"Всего отработано: {work_time} часов."
+        f"Отработано сегодня: {work_time} часов."
     )
 
 

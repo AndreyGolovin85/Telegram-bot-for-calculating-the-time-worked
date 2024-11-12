@@ -32,4 +32,3 @@ def setup_logging(log_file, level=logging.INFO):
 
 
 now = datetime.now()
-year = now.strftime("%Y")
