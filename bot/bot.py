@@ -93,7 +93,7 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
     user_work_days = list_work_days(user_uid=message.chat.id)
     if message.chat.id != ADMIN_ID:
         if not (user_work_days := list_work_days(user_uid=message.chat.id)):
-            await message.answer("Вы ещё не создали ни одного тикета.")
+            await message.answer("Вы ещё не создали ни одной записи.")
             return
     for user_work_day in user_work_days:
         await message.answer(f"{user_work_day.work_total}")
