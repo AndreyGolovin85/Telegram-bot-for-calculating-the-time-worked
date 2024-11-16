@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, func, desc
 from collections.abc import Sequence
 
 from models import User, Session, TimeWork
@@ -95,9 +95,8 @@ def add_work_time(time_data: TimeWorkDTO) -> int:
 def list_work_days(user_uid, work_month_year: str | None = None):
     """Функция для выборки отработанных дней в месяце определенным пользователем."""
     with Session() as session:
-        select_work_days = session.query(TimeWork).filter_by(user_uid=user_uid)
+        select_work_days = session.query(TimeWork).filter_by(user_uid=user_uid).order_by(TimeWork.work_date)\
+            .filter(TimeWork.work_date.contains(work_month_year))
         work_days = [day for day in select_work_days]
-
-        print(11111111111, [day for day in select_work_days])
 
         return work_days

@@ -86,17 +86,21 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
         f"Дата: {work_date}\n"
         f"Отработано сегодня: {work_time} часов."
     )
+    await state.set_state(None)
+    return
 
 
 @dispatcher.message(Command("show_work_time"))
 async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
-    user_work_days = list_work_days(user_uid=message.chat.id)
+    current_date = datetime.now()
+    work_date = current_date.strftime("-%m-%Y")
+    user_work_days = list_work_days(user_uid=message.chat.id, work_month_year=work_date)
     if message.chat.id != ADMIN_ID:
         if not (user_work_days := list_work_days(user_uid=message.chat.id)):
             await message.answer("Вы ещё не создали ни одной записи.")
             return
     for user_work_day in user_work_days:
-        await message.answer(f"{user_work_day.work_total}")
+        await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total}")
     return
 
 
