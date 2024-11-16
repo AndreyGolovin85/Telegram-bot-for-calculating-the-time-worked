@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date
+from datetime import datetime
 import locale
 
 from aiogram import Bot, types, Dispatcher
@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking
-from utils import time_valid, count_work_time, register_user, create_work_time
+from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
@@ -54,7 +54,7 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
 
 
 @dispatcher.message(TimeTracking.start_time)
-async def process_name_and_department(message: types.Message, state: FSMContext) -> None:
+async def process_start_time(message: types.Message, state: FSMContext) -> None:
     start_time = message.text
     if time_valid(start_time) is False:
         await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
@@ -65,7 +65,7 @@ async def process_name_and_department(message: types.Message, state: FSMContext)
 
 
 @dispatcher.message(TimeTracking.end_time)
-async def process_department(message: types.Message, state: FSMContext) -> None:
+async def process_end_time(message: types.Message, state: FSMContext) -> None:
     chat_id = message.chat.id
     end_time = message.text
     if time_valid(end_time) is False:
@@ -75,7 +75,7 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
     data = await state.get_data()
     start_time = data.get("start_time")
     work_time = count_work_time(data.get("start_time"), data.get("end_time"))
-    current_date = setting.now
+    current_date = datetime.now()
     work_date = current_date.strftime("%d-%m-%Y")
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
@@ -83,20 +83,35 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
         "Вы отработали:\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
+        f"Дата: {work_date}\n"
         f"Отработано сегодня: {work_time} часов."
     )
+
+
+@dispatcher.message(Command("show_work_time"))
+async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
+    user_work_days = list_work_days(user_uid=message.chat.id)
+    if message.chat.id != ADMIN_ID:
+        if not (user_work_days := list_work_days(user_uid=message.chat.id)):
+            await message.answer("Вы ещё не создали ни одного тикета.")
+            return
+    for user_work_day in user_work_days:
+        await message.answer(f"{user_work_day.work_total}")
+    return
 
 
 async def set_commands(is_admin):
     if is_admin:
         commands = [
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
+            BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeChat(chat_id=ADMIN_ID))
 
     else:
         commands = [
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
+            BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeDefault())
 

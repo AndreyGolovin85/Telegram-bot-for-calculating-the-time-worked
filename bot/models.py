@@ -1,5 +1,6 @@
-from sqlalchemy import DateTime, Integer, String, create_engine, Date, Float, ForeignKey
+from sqlalchemy import DateTime, Integer, String, create_engine, Float, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, sessionmaker, relationship
+from datetime import datetime
 
 from settings import *
 
