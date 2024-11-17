@@ -1,4 +1,3 @@
-from datetime import datetime
 from dotenv import load_dotenv
 import os
 import sys
@@ -29,7 +28,3 @@ def setup_logging(log_file, level=logging.INFO):
     if not API_TOKEN or not ADMIN_ID or not ACCESS_KEY:
         logging.error("Отсутствуют переменные ENV.")
         sys.exit(1)
-
-
-now = datetime.now()
-year = now.strftime("%Y")

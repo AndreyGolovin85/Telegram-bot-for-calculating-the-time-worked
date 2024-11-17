@@ -1,7 +1,8 @@
 from datetime import datetime
+from sqlalchemy import select, func, desc
+from collections.abc import Sequence
 
 from models import User, Session, TimeWork
-
 from custom_types import UserDTO, TimeWorkDTO
 
 
@@ -22,8 +23,12 @@ def count_work_time(start_time: str, end_time: str) -> float:
         start_hours, start_minutes = map(int, start_time.split(':'))
         end_hours, end_minutes = map(int, end_time.split(':'))
         total_minutes = (end_hours * 60 + end_minutes) - (start_hours * 60 + start_minutes)
-        total_hours = total_minutes // 60
-        total_minutes %= 60
+        if start_hours < end_hours:
+            total_hours = total_minutes // 60
+            total_minutes %= 60
+        else:
+            total_hours = 24 + (total_minutes // 60)
+            total_minutes %= 60
         if total_hours <= 4:
             total_hours = total_hours
         else:
@@ -89,3 +94,13 @@ def add_work_time(time_data: TimeWorkDTO) -> int:
         session.add(new_time)
         session.commit()
         return new_time.id
+
+
+def list_work_days(user_uid, work_month_year: str | None = None) -> list:
+    """Функция для выборки отработанных дней в месяце определенным пользователем."""
+    with Session() as session:
+        select_work_days = session.query(TimeWork).filter_by(user_uid=user_uid).order_by(TimeWork.work_date)\
+            .filter(TimeWork.work_date.contains(work_month_year))
+        work_days = [day for day in select_work_days]
+
+        return work_days

@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime
+import locale
 
 from aiogram import Bot, types, Dispatcher
 from aiogram.enums import ParseMode
@@ -8,11 +10,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking
-from utils import time_valid, count_work_time, register_user, create_work_time
+from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
+locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 
 
 async def generate_start_link(our_bot: Bot):
@@ -51,7 +54,7 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
 
 
 @dispatcher.message(TimeTracking.start_time)
-async def process_name_and_department(message: types.Message, state: FSMContext) -> None:
+async def process_start_time(message: types.Message, state: FSMContext) -> None:
     start_time = message.text
     if time_valid(start_time) is False:
         await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
@@ -62,7 +65,7 @@ async def process_name_and_department(message: types.Message, state: FSMContext)
 
 
 @dispatcher.message(TimeTracking.end_time)
-async def process_department(message: types.Message, state: FSMContext) -> None:
+async def process_end_time(message: types.Message, state: FSMContext) -> None:
     chat_id = message.chat.id
     end_time = message.text
     if time_valid(end_time) is False:
@@ -70,29 +73,53 @@ async def process_department(message: types.Message, state: FSMContext) -> None:
         return
     await state.update_data(end_time=end_time)
     data = await state.get_data()
-    start_time = data.get('start_time')
-    work_time = count_work_time(data.get('start_time'), data.get('end_time'))
-    work_date = "1.05.2024"
+    start_time = data.get("start_time")
+    work_time = count_work_time(data.get("start_time"), data.get("end_time"))
+    current_date = datetime.now()
+    work_date = current_date.strftime("%d-%m-%Y")
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
     await message.reply(
         "Вы отработали:\n"
         f"Время начала работы: {data.get('start_time')}\n"
         f"Время окончания работы: {data.get('end_time')}\n"
-        f"Всего отработано: {work_time} часов."
+        f"Дата: {work_date}\n"
+        f"Отработано сегодня: {work_time} часов."
     )
+    await state.set_state(None)
+    return
+
+
+@dispatcher.message(Command("show_work_time"))
+async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
+    current_date = datetime.now()
+    work_date = current_date.strftime("-%m-%Y")
+    user_work_days = list_work_days(user_uid=message.chat.id, work_month_year=work_date)
+    sum_total = 0
+    if message.chat.id != ADMIN_ID:
+        if not (user_work_days := list_work_days(user_uid=message.chat.id)):
+            await message.answer("Вы ещё не создали ни одной записи.")
+            return
+    total_day = len(user_work_days)
+    for user_work_day in user_work_days:
+        sum_total += user_work_day.work_total
+        await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total}")
+    await message.answer(f"Всего часов: {sum_total}, Всего дней: {total_day}")
+    return
 
 
 async def set_commands(is_admin):
     if is_admin:
         commands = [
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
+            BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeChat(chat_id=ADMIN_ID))
 
     else:
         commands = [
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
+            BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeDefault())
 
