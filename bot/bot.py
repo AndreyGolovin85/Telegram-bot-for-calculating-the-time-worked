@@ -95,12 +95,16 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
     current_date = datetime.now()
     work_date = current_date.strftime("-%m-%Y")
     user_work_days = list_work_days(user_uid=message.chat.id, work_month_year=work_date)
+    sum_total = 0
     if message.chat.id != ADMIN_ID:
         if not (user_work_days := list_work_days(user_uid=message.chat.id)):
             await message.answer("Вы ещё не создали ни одной записи.")
             return
+    total_day = len(user_work_days)
     for user_work_day in user_work_days:
+        sum_total += user_work_day.work_total
         await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total}")
+    await message.answer(f"Всего часов: {sum_total}, Всего дней: {total_day}")
     return
 
 
