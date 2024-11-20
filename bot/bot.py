@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking
-from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days
+from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
@@ -104,7 +104,10 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
     for user_work_day in user_work_days:
         sum_total += user_work_day.work_total
         await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total}")
-    await message.answer(f"Всего часов: {sum_total}, Всего дней: {total_day}")
+    await message.answer(f"Всего часов отработано : {sum_total},\n"
+                         f"Всего дней отработано: {total_day},\n"
+                         f"Норма часов в месяце: {get_production_calendar()['working_hours']},\n"
+                         f"Рабочих дней в месяце: {get_production_calendar()['work_days']}")
     return
 
 

@@ -1,9 +1,20 @@
 from datetime import datetime
-from sqlalchemy import select, func, desc
-from collections.abc import Sequence
+import requests
 
 from models import User, Session, TimeWork
 from custom_types import UserDTO, TimeWorkDTO
+
+import settings as setting
+
+
+def get_production_calendar():
+    url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/11.2024/json?region=23"
+    response = requests.get(url).json()["statistic"]
+    return {"calendar_days": response["calendar_days"],
+            "work_days": response["work_days"],
+            "weekends": response["weekends"],
+            "holidays": response["holidays"],
+            "working_hours": response["working_hours"]}
 
 
 def time_valid(input_time: str) -> bool:

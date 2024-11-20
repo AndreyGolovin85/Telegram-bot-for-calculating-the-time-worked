@@ -8,6 +8,7 @@ load_dotenv()
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")
 ACCESS_KEY = os.getenv("ACCESS_KEY")
+PRODUCTION_CALENDAR = os.getenv("TOKEN")
 
 #engine = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 engine = "sqlite:///bot.db"
