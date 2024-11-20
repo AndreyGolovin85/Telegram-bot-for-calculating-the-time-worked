@@ -7,7 +7,7 @@ from custom_types import UserDTO, TimeWorkDTO
 import settings as setting
 
 
-def get_production_calendar():
+def get_production_calendar() -> dict:
     url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/11.2024/json?region=23"
     response = requests.get(url).json()["statistic"]
     return {"calendar_days": response["calendar_days"],
