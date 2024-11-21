@@ -10,7 +10,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking
-from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar
+from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar, \
+    get_work_day
 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
@@ -49,6 +50,12 @@ async def cmd_start(message: types.Message, command: CommandObject):
 
 @dispatcher.message(Command("write_work_time"))
 async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
+    chat_id = message.chat.id
+    current_date = datetime.now()
+    work_date = current_date.strftime("%d-%m-%Y")
+    if get_work_day(chat_id, work_date) is not None:
+        await message.reply("Запись на сегодня уже создана.")
+        return
     await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
 
@@ -94,6 +101,7 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
 async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
     current_date = datetime.now()
     work_date = current_date.strftime("-%m-%Y")
+    production_calendar = get_production_calendar(month=current_date.strftime("%m"), year=current_date.strftime("%Y"))
     user_work_days = list_work_days(user_uid=message.chat.id, work_month_year=work_date)
     sum_total = 0
     if message.chat.id != ADMIN_ID:
@@ -106,8 +114,8 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
         await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total}")
     await message.answer(f"Всего часов отработано : {sum_total},\n"
                          f"Всего дней отработано: {total_day},\n"
-                         f"Норма часов в месяце: {get_production_calendar()['working_hours']},\n"
-                         f"Рабочих дней в месяце: {get_production_calendar()['work_days']}")
+                         f"Норма часов в месяце: {production_calendar['working_hours']},\n"
+                         f"Рабочих дней в месяце: {production_calendar['work_days']}")
     return
 
 

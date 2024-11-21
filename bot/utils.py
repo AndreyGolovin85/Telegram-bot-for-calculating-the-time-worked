@@ -7,8 +7,8 @@ from custom_types import UserDTO, TimeWorkDTO
 import settings as setting
 
 
-def get_production_calendar() -> dict:
-    url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/11.2024/json?region=23"
+def get_production_calendar(month: str, year: str) -> dict:
+    url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/{month}.{year}/json?region=23"
     response = requests.get(url).json()["statistic"]
     return {"calendar_days": response["calendar_days"],
             "work_days": response["work_days"],
@@ -115,3 +115,8 @@ def list_work_days(user_uid, work_month_year: str | None = None) -> list:
         work_days = [day for day in select_work_days]
 
         return work_days
+
+
+def get_work_day(user_uid: int, day: str) -> TimeWork | None:
+    with Session() as session:
+        return session.query(TimeWork).filter_by(user_uid=user_uid, work_date=day).one_or_none()
