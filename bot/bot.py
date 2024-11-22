@@ -111,7 +111,8 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
     total_day = len(user_work_days)
     for user_work_day in user_work_days:
         sum_total += user_work_day.work_total
-        await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total}")
+        await message.answer(f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до "
+                             f"{user_work_day.work_finish}")
     await message.answer(f"Всего часов отработано : {sum_total},\n"
                          f"Всего дней отработано: {total_day},\n"
                          f"Норма часов в месяце: {production_calendar['working_hours']},\n"
