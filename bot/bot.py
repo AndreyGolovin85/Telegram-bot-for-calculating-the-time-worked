@@ -27,8 +27,10 @@ async def generate_start_link(our_bot: Bot):
 async def cmd_help(message: types.Message):
     await message.answer(
         "Основные команды для работы:\n"
-        "/start_work - команда для регистрации пользователя.\n",
-        parse_mode=ParseMode.HTML,
+        "/start_work - команда для регистрации пользователя.\n"
+        "/write_work_time - Команда для записи отработанного времени.\n"
+        "/show_work_time - Команда для просмотра отработанного времени.\n",
+        parse_mode=ParseMode.HTML
     )
 
 
@@ -53,7 +55,8 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
     chat_id = message.chat.id
     current_date = datetime.now()
     work_date = current_date.strftime("%d-%m-%Y")
-    if get_work_day(chat_id, work_date) is not None:
+    work_day = get_work_day(chat_id, work_date)
+    if work_day is not None:
         await message.reply("Запись на сегодня уже создана.")
         return
     await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
