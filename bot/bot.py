@@ -1,5 +1,6 @@
 import asyncio
-from datetime import datetime
+import calendar
+from datetime import datetime, timedelta
 import locale
 
 from aiogram import Bot, types, Dispatcher
@@ -19,6 +20,72 @@ dispatcher = Dispatcher()
 locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 
 
+async def create_calendar(year: int, month: int):
+    cal = calendar.monthcalendar(year, month)
+    keyboard_rows = []
+    for week in cal:
+        row = []
+        for day in week:
+            if day == 0:
+                row.append(types.InlineKeyboardButton(text="", callback_data="empty"))
+            else:
+                date_str = f"{day:02}-{month:02}-{year}"
+                row.append(types.InlineKeyboardButton(text=str(day), callback_data=date_str))
+        keyboard_rows.append(row)
+
+    # Навигация.  Создаем строки отдельно.
+    navigation_row = [
+        types.InlineKeyboardButton(text=f"< {calendar.month_abbr[month - 1 if month > 1 else 12]}",
+                                   callback_data=f"prev_month/{year}/{month}"),
+        types.InlineKeyboardButton(text=f"{calendar.month_name[month]} {year}", callback_data=f"current/{month}/{year}"),
+        types.InlineKeyboardButton(text=f"{calendar.month_abbr[month + 1 if month < 12 else 1]} >",
+                                   callback_data=f"next_month/{year}/{month}"),
+    ]
+    keyboard_rows.insert(0, navigation_row)  # Вставляем строку навигации в начало
+
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
+    return keyboard
+
+
+@dispatcher.message(Command("calendar"))
+async def cmd_calendar(message: types.Message):
+    now = datetime.now()
+    keyboard = await create_calendar(now.year, now.month)
+    await message.answer("Выберите дату:", reply_markup=keyboard)
+
+
+@dispatcher.callback_query(lambda call: call.data)
+async def process_calendar_selection(call: types.CallbackQuery):
+    await call.answer()
+    print(f"Обрабатываем callback_data: {call.data}")  # Для отладки
+    try:
+        data = call.data.split("/")
+        if data[0] == "current":
+            year, month = map(int, data[1:])
+            await call.message.edit_text("Выберите дату:", reply_markup=await create_calendar(year, month))
+        elif data[0] == "empty":
+            await call.message.edit_text("Выберите дату:",
+                                         reply_markup=await create_calendar(datetime.now().year, datetime.now().month))
+        elif data[0] in ["prev_month", "next_month"]:
+            year, month = map(int, data[1:])
+            month += 1 if data[0] == "next_month" else -1
+            if month > 12:
+                year += 1
+                month = 1
+            elif month < 1:
+                year -= 1
+                month = 12
+            await call.message.edit_text("Выберите дату:", reply_markup=await create_calendar(year, month))
+        elif data[0] in ["prev_year", "next_year"]:
+            year, month = map(int, data[1:])
+            year += 1 if data[0] == "next_year" else -1
+            await call.message.edit_text("Выберите дату:", reply_markup=await create_calendar(year, month))
+        else:
+            await call.message.edit_text(f"Вы выбрали дату: {call.data}")
+    except (IndexError, ValueError):
+        await call.message.answer("Ошибка обработки данных.")
+
+
 async def generate_start_link(our_bot: Bot):
     return await create_start_link(our_bot, setting.ACCESS_KEY)
 
@@ -27,7 +94,6 @@ async def generate_start_link(our_bot: Bot):
 async def cmd_help(message: types.Message):
     await message.answer(
         "Основные команды для работы:\n"
-        "/start_work - команда для регистрации пользователя.\n"
         "/write_work_time - Команда для записи отработанного времени.\n"
         "/show_work_time - Команда для просмотра отработанного времени.\n",
         parse_mode=ParseMode.HTML
