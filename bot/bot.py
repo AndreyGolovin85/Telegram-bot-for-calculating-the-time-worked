@@ -49,38 +49,42 @@ async def create_calendar(year: int, month: int):
     return keyboard
 
 
+@dispatcher.callback_query(lambda call: call.data.startswith("current"))
+async def show_work_day(callback: types.CallbackQuery) -> None:
+    user_id = callback.message.chat.id
+    await callback.answer()
+    data = callback.data.split("/")
+    if data[0] == "current":
+        year, month = map(int, callback.data.split("/")[1:])
+        work_date = f"-{month:02}-{year}"
+        production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
+        sum_total = 0
+        if not (user_work_days := list_work_days(user_uid=user_id, work_month_year=work_date)):
+            await callback.message.edit_text(f"Вы не создали ни одной записи отработанных часов на "
+                                             f"{calendar.month_name[month]}.\n"
+                                             f"Норма часов в месяце: {production_calendar['working_hours']}.\n"
+                                             f"Рабочих дней в месяце: {production_calendar['work_days']}.",
+                                             reply_markup=None)
+            return
+        total_day = len(user_work_days)
+        for user_work_day in user_work_days:
+            sum_total += user_work_day.work_total
+            await callback.message.answer(
+                f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до "
+                f"{user_work_day.work_finish}")
+        await callback.message.edit_text(f"Всего часов отработано: {sum_total},\n"
+                                         f"Всего дней отработано: {total_day},\n"
+                                         f"Норма часов в месяце: {production_calendar['working_hours']},\n"
+                                         f"Рабочих дней в месяце: {production_calendar['work_days']}")
+        return
+
+
 @dispatcher.callback_query(lambda call: call.data)
 async def process_calendar_selection(call: types.CallbackQuery):
     await call.answer()
     try:
         data = call.data.split("/")
-        if data[0] == "current":
-            year, month = map(int, data[1:])
-            work_date = f"-{month:02}-{year}"
-            production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
-            sum_total = 0
-            if not (user_work_days := list_work_days(user_uid=call.message.chat.id, work_month_year=work_date)):
-                await call.message.edit_text(f"Вы не создали ни одной записи отработанных часов на "
-                                             f"{calendar.month_name[month]}.\n"
-                                             f"Норма часов в месяце: {production_calendar['working_hours']}.\n"
-                                             f"Рабочих дней в месяце: {production_calendar['work_days']}.",
-                                             reply_markup=None)
-                await call.answer()
-                return
-            total_day = len(user_work_days)
-            for user_work_day in user_work_days:
-                sum_total += user_work_day.work_total
-                await call.message.answer(
-                    f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до "
-                    f"{user_work_day.work_finish}")
-            await call.message.answer(f"Всего часов отработано: {sum_total},\n"
-                                      f"Всего дней отработано: {total_day},\n"
-                                      f"Норма часов в месяце: {production_calendar['working_hours']},\n"
-                                      f"Рабочих дней в месяце: {production_calendar['work_days']}")
-        elif data[0] == "empty":
-            await call.message.edit_text("Выберите дату:",
-                                         reply_markup=await create_calendar(datetime.now().year, datetime.now().month))
-        elif data[0] in ["prev_month", "next_month"]:
+        if data[0] in ["prev_month", "next_month"]:
             year, month = map(int, data[1:])
             month += 1 if data[0] == "next_month" else -1
             if month > 12:
@@ -90,8 +94,7 @@ async def process_calendar_selection(call: types.CallbackQuery):
                 year -= 1
                 month = 12
             await call.message.edit_text("Выберите дату:", reply_markup=await create_calendar(year, month))
-        else:
-            await call.message.edit_text(f"Вы выбрали дату: {call.data}")
+            return
     except (IndexError, ValueError):
         await call.message.answer("Ошибка обработки данных.")
 
