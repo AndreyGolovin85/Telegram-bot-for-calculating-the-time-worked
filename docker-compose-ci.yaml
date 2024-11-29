@@ -16,7 +16,7 @@ services:
     depends_on:
       - db_time
     command: >
-      sh -c "cd ./bot && alembic upgrade head && cd ../. && python bot/bot.py"
+      sh -c "cd ./bot && cd ../. && python bot/bot.py"
 
   db_time:
     image: postgres:15.1-alpine
