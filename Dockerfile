@@ -4,9 +4,9 @@ RUN groupadd --gid 2000 node && useradd --uid 2000 --gid node --shell /bin/bash 
 
 USER node
 
-WORKDIR /botti
+WORKDIR /bot
 
-ENV VIRTUAL_ENV=/botti/venv
+ENV VIRTUAL_ENV=/bot/venv
 
 RUN python3 -m venv $VIRTUAL_ENV
 
@@ -19,4 +19,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "botti/bot.py"]
+CMD ["python", "bot/bot.py"]
