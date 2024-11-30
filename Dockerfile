@@ -4,9 +4,9 @@ RUN groupadd --gid 2000 node_bot && useradd --uid 2000 --gid node_bot --shell /b
 
 USER node_bot
 
-WORKDIR /app
+WORKDIR /app_bot
 
-ENV VIRTUAL_ENV=/app/venv
+ENV VIRTUAL_ENV=/app_bot/venv
 
 RUN python3 -m venv $VIRTUAL_ENV
 

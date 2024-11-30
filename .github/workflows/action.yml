@@ -41,15 +41,15 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           source: "deploy/docker-compose.yml"
-          target: "app"
+          target: "app_bot"
           strip_components: 3
-      - name: deploy app
+      - name: deploy app_bot
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            cd app
+            cd app_bot
             echo ${{ secrets.PASSWORD }} | sudo -S docker-compose down
             echo ${{ secrets.PASSWORD }} | sudo -S docker-compose up -d
