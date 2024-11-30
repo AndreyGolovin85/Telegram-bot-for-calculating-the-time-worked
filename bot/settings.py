@@ -10,8 +10,15 @@ ADMIN_ID = os.getenv("ADMIN_ID")
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 PRODUCTION_CALENDAR = os.getenv("TOKEN")
 
-#engine = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-engine = "sqlite:///bot.db"
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+
+
+engine = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+#engine = "sqlite:///bot.db"
 
 
 def setup_logging(log_file, level=logging.INFO):
