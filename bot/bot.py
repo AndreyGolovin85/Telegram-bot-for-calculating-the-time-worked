@@ -17,7 +17,7 @@ from utils import time_valid, count_work_time, register_user, create_work_time, 
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
-locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
+#locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 
 
 async def create_calendar(year: int, month: int):
