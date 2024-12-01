@@ -14,11 +14,11 @@ services:
       POSTGRES_DB: $POSTGRES_DB
       POSTGRES_PORT: $POSTGRES_PORT
     depends_on:
-      - dbtime
+      - tgbot
     command: >
       sh -c "cd ./bot && cd ../. && python bot/bot.py"
 
-  dbtime:
+  tgbot:
     image: postgres:15.1-alpine
     environment:
       API_TOKEN: $API_TOKEN
