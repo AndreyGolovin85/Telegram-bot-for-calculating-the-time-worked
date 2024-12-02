@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
-RUN groupadd --gid 2000 node && useradd --uid 2000 --gid node --shell /bin/bash --create-home node
+RUN groupadd --gid 2000 nodetg && useradd --uid 2000 --gid nodetg --shell /bin/bash --create-home nodetg
 
-USER node
+USER nodetg
 
 WORKDIR /appbot
 
