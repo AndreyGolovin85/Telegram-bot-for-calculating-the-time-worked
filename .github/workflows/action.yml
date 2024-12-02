@@ -5,7 +5,7 @@ on:
       - deploy
 jobs:
   build_and_push:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: clone code
         uses: actions/checkout@v3
@@ -16,7 +16,7 @@ jobs:
       - name: docker push
         run: docker push andreygolovin5/telegrambot_time:$GITHUB_REF_NAME-$GITHUB_RUN_ID
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build_and_push
     env:
       API_TOKEN: ${{ secrets.API_TOKEN }}
