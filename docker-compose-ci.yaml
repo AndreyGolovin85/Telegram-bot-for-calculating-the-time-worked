@@ -28,7 +28,7 @@ services:
       POSTGRES_PORT: $POSTGRES_PORT
     restart: always
     ports:
-      - "6785:6785"
+      - "5432:6785"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
