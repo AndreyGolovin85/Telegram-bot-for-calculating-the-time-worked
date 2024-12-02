@@ -9,10 +9,10 @@ services:
       - .env
     restart: always
     depends_on:
-      - db
+      - tgbot
     command: >
       sh -c "cd ./bot && cd ../. && python bot/bot.py"
-  db:
+  tgbot:
     image: postgres:15.1-alpine
     environment:
       POSGRES_USER: ${POSTGRES_USER}
