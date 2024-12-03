@@ -16,7 +16,7 @@ services:
     depends_on:
       - tgbot
     command: >
-      sh -c "cd ./bot && cd ../. && python bot/bot.py"
+      sh -c "python bot/bot.py"
 
   tgbot:
     image: postgres:15.1-alpine
