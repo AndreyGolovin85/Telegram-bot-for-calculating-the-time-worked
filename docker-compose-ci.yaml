@@ -1,0 +1,40 @@
+version: "3.3"
+
+services:
+  bot:
+    image: andreygolovin5/telegrambot_time:$GITHUB_REF_NAME-$GITHUB_RUN_ID
+    restart: always
+    environment:
+      API_TOKEN: $API_TOKEN
+      ADMIN_ID: $ADMIN_ID
+      ACCESS_KEY: $ACCESS_KEY
+      POSTGRES_HOST: $POSTGRES_HOST
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_PORT: $POSTGRES_PORT
+    depends_on:
+      - tgbot
+    command: >
+      sh -c "python bot/bot.py"
+
+  tgbot:
+    image: postgres:15.1-alpine
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    restart: always
+    ports:
+      - "6785:6785"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command: -p 6785
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+    pgdata:
