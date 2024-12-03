@@ -120,7 +120,7 @@ async def cmd_start(message: types.Message, command: CommandObject):
         is_admin = message.chat.id == ADMIN_ID
         first_name = message.from_user.first_name
         last_name = message.from_user.last_name
-        user = await register_user(user_uid=chat_id, first_name=first_name, last_name=last_name)
+        await register_user(user_uid=chat_id, first_name=first_name, last_name=last_name)
         await set_commands(is_admin)
         await message.answer(
             "Привет! Я бот для записи и подсчета отработанных часов.\n\n"
