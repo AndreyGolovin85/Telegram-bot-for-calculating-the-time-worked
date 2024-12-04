@@ -1,6 +1,7 @@
 FROM python:3.11-slim
 
 RUN groupadd --gid 2000 nodetg && useradd --uid 2000 --gid nodetg --shell /bin/bash --create-home nodetg
+RUN apt update && apt install -y locales && locale-gen ru_RU.UTF-8
 
 USER nodetg
 
