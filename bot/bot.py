@@ -1,6 +1,7 @@
 import asyncio
 import calendar
 from datetime import datetime, timedelta
+#import locale
 
 from aiogram import Bot, types, Dispatcher
 from aiogram.enums import ParseMode
@@ -13,6 +14,7 @@ from custom_types import TimeTracking
 from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar, \
     get_work_day
 
+#locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
