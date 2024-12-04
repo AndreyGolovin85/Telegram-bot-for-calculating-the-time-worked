@@ -8,6 +8,7 @@ import settings as setting
 
 
 def get_production_calendar(month: str, year: str) -> dict:
+    print(11111111111111111111111111111111111111, month, year)
     url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/{month}.{year}/json?region=23"
     response = requests.get(url).json()["statistic"]
     return {"calendar_days": response["calendar_days"],
