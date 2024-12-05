@@ -9,9 +9,9 @@ import settings as setting
 
 
 def get_production_calendar(month: str, year: str) -> dict:
-    if month and year:
-        logging.error(f"1111111111111111111 {month}, {year}")
     url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/{month}.{year}/json?region=23"
+    if month and year:
+        logging.error(f"1111111111111111111 {month}, {year}, {url}")
     response = requests.get(url).json()["statistic"]
     return {"calendar_days": response["calendar_days"],
             "work_days": response["work_days"],
