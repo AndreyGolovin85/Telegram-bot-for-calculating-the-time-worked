@@ -8,7 +8,7 @@ load_dotenv()
 API_TOKEN = os.getenv("API_TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")
 ACCESS_KEY = os.getenv("ACCESS_KEY")
-PRODUCTION_CALENDAR = os.getenv("TOKEN")
+PRODUCTION_CALENDAR = os.getenv("PRODUCTION_CALENDAR")
 
 POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
