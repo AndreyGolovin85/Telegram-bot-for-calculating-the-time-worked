@@ -1,7 +1,7 @@
 import asyncio
 import calendar
 from datetime import datetime, timedelta
-#import locale
+import locale
 
 from aiogram import Bot, types, Dispatcher
 from aiogram.enums import ParseMode
@@ -10,11 +10,11 @@ from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefaul
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
-from custom_types import TimeTracking
+from custom_types import TimeTracking, RegisterStates
 from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar, \
-    get_work_day
+    get_work_day, check_user_registration
 
-#locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
+locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
@@ -107,6 +107,7 @@ async def generate_start_link(our_bot: Bot):
 async def cmd_help(message: types.Message):
     await message.answer(
         "Основные команды для работы:\n"
+        "/register - Команда для регистрации.\n"
         "/write_work_time - Команда для записи отработанного времени.\n"
         "/show_work_time - Команда для просмотра отработанного времени.\n",
         parse_mode=ParseMode.HTML
@@ -116,17 +117,63 @@ async def cmd_help(message: types.Message):
 @dispatcher.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject):
     if command.args == setting.ACCESS_KEY:
-        chat_id = message.chat.id
         is_admin = message.chat.id == ADMIN_ID
-        first_name = message.from_user.first_name
-        last_name = message.from_user.last_name
-        await register_user(user_uid=chat_id, first_name=first_name, last_name=last_name)
         await set_commands(is_admin)
         await message.answer(
             "Привет! Я бот для записи и подсчета отработанных часов.\n\n"
-            "Чтобы начать запись, отправьте команду /write_work_time.\n"
+            "Для продолжения пройдите регистрацию /register.\n"
             "Или воспользуйтесь помощью по командам /help."
         )
+
+
+@dispatcher.message(Command("register"))
+async def cmd_register(message: types.Message, state: FSMContext) -> None:
+    if check_user_registration(message.chat.id):
+        await message.answer("Вы уже зарегистрированы.")
+        return
+
+    await message.reply("Введите ваши имя и фамилию.\nНапример: Иван Иванов.\n"
+                        "Или используйте /next, для использования данных из телеграмм профиля.")
+    await state.update_data(chat_id=message.chat.id)
+    await state.set_state(RegisterStates.first_and_last_name)
+
+
+@dispatcher.message(RegisterStates.first_and_last_name)
+async def process_name_and_department(message: types.Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    if message.text == "/next":
+        first_name = message.from_user.first_name
+        last_name = message.from_user.last_name
+        if first_name and last_name:
+            await register_user(user_uid=data.get('chat_id'), first_name=first_name, last_name=last_name)
+            await message.reply(
+                "Вы успешно зарегистрировались.\n"
+                f"Имя: {first_name}\n"
+                f"Фамилия: {last_name}\n"
+                f"Для записи рабочего времени воспользуйтесь командой - /write_work_time"
+            )
+            await state.set_state(None)
+            return
+        await state.set_state(RegisterStates.first_and_last_name)
+        await message.reply("Введите ваши имя и фамилию.\nНапример: Иван Иванов\n"
+                            "Или используйте /next, для использования данных из телеграмм профиля.")
+    first_and_last_name = message.text
+    parts = first_and_last_name.split(" ")
+    if len(parts) < 2:
+        await message.reply("Неверный формат. Введите имя и фамилию.")
+        await state.set_state(RegisterStates.first_and_last_name)
+        return
+    first_name = parts[0]
+    last_name = parts[1]
+    await register_user(user_uid=data.get('chat_id'), first_name=first_name, last_name=last_name)
+    await message.reply(
+        "Вы успешно зарегистрировались.\n"
+        f"Имя: {first_name}\n"
+        f"Фамилия: {last_name}\n\n"
+        f"Для записи рабочего времени воспользуйтесь командой - /write_work_time"
+    )
+    await state.set_state(None)
+    return
 
 
 @dispatcher.message(Command("write_work_time"))

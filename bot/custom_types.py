@@ -20,3 +20,7 @@ class TimeWorkDTO(BaseModel):
 class TimeTracking(StatesGroup):
     start_time = State()
     end_time = State()
+
+
+class RegisterStates(StatesGroup):
+    first_and_last_name = State()
