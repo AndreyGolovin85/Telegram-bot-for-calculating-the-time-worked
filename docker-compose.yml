@@ -1,17 +1,6 @@
 version: "3.9"
 
 services:
-  bot:
-    build:
-      context: .
-    image: andreygolovin5/telegrambot_time
-    env_file:
-      - .env
-    restart: always
-    depends_on:
-      - tgbot
-    command: >
-      sh -c "cd ./bot && cd ../. && python bot/bot.py"
   tgbot:
     image: postgres:15.1-alpine
     environment:
