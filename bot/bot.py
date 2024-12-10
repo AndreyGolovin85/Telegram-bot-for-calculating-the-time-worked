@@ -1,7 +1,8 @@
 import asyncio
 import calendar
 from datetime import datetime, timedelta
-#import locale
+from typing import Literal
+# import locale
 
 from aiogram import Bot, types, Dispatcher
 from aiogram.enums import ParseMode
@@ -14,10 +15,30 @@ from custom_types import TimeTracking, RegisterStates
 from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar, \
     get_work_day, check_user_registration
 
-#locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
+# locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
 ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
+
+
+def buttons_keyboard(data, keyboard_type: Literal["month_year"] = "month_year") -> types.InlineKeyboardMarkup:
+    """
+    Формирует клавиатуру в зависимости от нужного варианта.
+    """
+    print(3333333333333333, data)
+    if keyboard_type == "month_year":
+        buttons = [[
+            types.InlineKeyboardButton(text=f"< {calendar.month_abbr[data.month - 1 if data.month > 1 else 12]}",
+                                       callback_data=f"prev_month/{data.year}/{data.month}"),
+            types.InlineKeyboardButton(text=f"{calendar.month_name[data.month]} {data.year}",
+                                       callback_data=f"current/{data.year}/{data.month}"),
+            types.InlineKeyboardButton(text=f"{calendar.month_abbr[data.month + 1 if data.month < 12 else 1]} >",
+                                       callback_data=f"next_month/{data.year}/{data.month}"),
+        ]]
+    else:
+        buttons = []
+
+    return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 async def create_calendar(year: int, month: int):
@@ -34,22 +55,11 @@ async def create_calendar(year: int, month: int):
                 row.append(types.InlineKeyboardButton(text=str(day), callback_data=date_str))
         keyboard_rows.append(row)
 
-    # Навигация.  Создаем строки отдельно.
-    navigation_row = [
-        types.InlineKeyboardButton(text=f"< {calendar.month_abbr[month - 1 if month > 1 else 12]}",
-                                   callback_data=f"prev_month/{year}/{month}"),
-        types.InlineKeyboardButton(text=f"{calendar.month_name[month]} {year}",
-                                   callback_data=f"current/{year}/{month}"),
-        types.InlineKeyboardButton(text=f"{calendar.month_abbr[month + 1 if month < 12 else 1]} >",
-                                   callback_data=f"next_month/{year}/{month}"),
-    ]
-    keyboard_rows.insert(0, navigation_row)  # Вставляем строку навигации в начало
-
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
     return keyboard
 
 
-@dispatcher.callback_query(lambda call: call.data.startswith("current"))
+@dispatcher.callback_query(lambda call: call.data.startswith("current/"))
 async def show_work_day(callback: types.CallbackQuery) -> None:
     user_id = callback.message.chat.id
     await callback.answer()
@@ -80,10 +90,11 @@ async def show_work_day(callback: types.CallbackQuery) -> None:
 
 
 @dispatcher.callback_query(lambda call: call.data)
-async def process_calendar_selection(call: types.CallbackQuery):
-    await call.answer()
+async def process_calendar_selection(callback: types.CallbackQuery):
+    await callback.answer()
     try:
-        data = call.data.split("/")
+        current_date = datetime.now()
+        data = callback.data.split("/")
         if data[0] in ["prev_month", "next_month"]:
             year, month = map(int, data[1:])
             month += 1 if data[0] == "next_month" else -1
@@ -93,10 +104,14 @@ async def process_calendar_selection(call: types.CallbackQuery):
             elif month < 1:
                 year -= 1
                 month = 12
-            await call.message.edit_text("Выберите дату:", reply_markup=await create_calendar(year, month))
+
+            current_date = current_date.replace(year=year, month=month)
+            buttons_keyboard(current_date)
+            await callback.message.edit_text("Выберите месяц для просмотра отработанных дней:",
+                                             reply_markup=buttons_keyboard(current_date))
             return
     except (IndexError, ValueError):
-        await call.message.answer("Ошибка обработки данных.")
+        await callback.message.answer("Ошибка обработки данных.")
 
 
 async def generate_start_link(our_bot: Bot):
@@ -178,6 +193,10 @@ async def process_name_and_department(message: types.Message, state: FSMContext)
 
 @dispatcher.message(Command("write_work_time"))
 async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
+    if not check_user_registration(message.chat.id):
+        await message.answer("Вы не зарегистрированы.\n"
+                             "Для продолжения пройдите регистрацию /register.\n")
+        return
     chat_id = message.chat.id
     current_date = datetime.now()
     work_date = current_date.strftime("%d-%m-%Y")
@@ -228,15 +247,20 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
 
 @dispatcher.message(Command("show_work_time"))
 async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
+    if not check_user_registration(message.chat.id):
+        await message.answer("Вы не зарегистрированы.\n"
+                             "Для продолжения пройдите регистрацию /register.\n")
+        return
     current_date = datetime.now()
-    keyboard = await create_calendar(current_date.year, current_date.month)
-    await message.answer("Выберите месяц для просмотра отработанных дней:", reply_markup=keyboard)
+    # await create_calendar(current_date.year, current_date.month)
+    await message.answer("Выберите месяц для просмотра отработанных дней:", reply_markup=buttons_keyboard(current_date))
     return
 
 
 async def set_commands(is_admin):
     if is_admin:
         commands = [
+            BotCommand(command="register", description="Команда для регистрации"),
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
             BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
@@ -244,6 +268,7 @@ async def set_commands(is_admin):
 
     else:
         commands = [
+            BotCommand(command="register", description="Команда для регистрации"),
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
             BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
