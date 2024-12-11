@@ -21,27 +21,31 @@ ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
 
 
-def buttons_keyboard(data, keyboard_type: Literal["month_year"] = "month_year") -> types.InlineKeyboardMarkup:
+def buttons_keyboard(data, keyboard_type: Literal["month_year", "choice_day"] = "month_year") \
+        -> types.InlineKeyboardMarkup:
     """
     Формирует клавиатуру в зависимости от нужного варианта.
     """
-    print(3333333333333333, data)
+    buttons_month_year = [
+        types.InlineKeyboardButton(text=f"< {calendar.month_abbr[data.month - 1 if data.month > 1 else 12]}",
+                                   callback_data=f"prev_month/{data.year}/{data.month}"),
+        types.InlineKeyboardButton(text=f"{calendar.month_name[data.month]} {data.year}",
+                                   callback_data=f"current/{data.year}/{data.month}"),
+        types.InlineKeyboardButton(text=f"{calendar.month_abbr[data.month + 1 if data.month < 12 else 1]} >",
+                                   callback_data=f"next_month/{data.year}/{data.month}"),
+    ]
     if keyboard_type == "month_year":
-        buttons = [[
-            types.InlineKeyboardButton(text=f"< {calendar.month_abbr[data.month - 1 if data.month > 1 else 12]}",
-                                       callback_data=f"prev_month/{data.year}/{data.month}"),
-            types.InlineKeyboardButton(text=f"{calendar.month_name[data.month]} {data.year}",
-                                       callback_data=f"current/{data.year}/{data.month}"),
-            types.InlineKeyboardButton(text=f"{calendar.month_abbr[data.month + 1 if data.month < 12 else 1]} >",
-                                       callback_data=f"next_month/{data.year}/{data.month}"),
-        ]]
+        buttons = [buttons_month_year]
+    elif keyboard_type == "choice_day":
+        calendar_keyboard = create_calendar(data.year, data.month)
+        buttons = [buttons_month_year] + calendar_keyboard
     else:
         buttons = []
 
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-async def create_calendar(year: int, month: int):
+def create_calendar(year: int, month: int) -> list:
     """Функция для отрисовки кнопок календаря."""
     cal = calendar.monthcalendar(year, month)
     keyboard_rows = []
@@ -55,8 +59,7 @@ async def create_calendar(year: int, month: int):
                 row.append(types.InlineKeyboardButton(text=str(day), callback_data=date_str))
         keyboard_rows.append(row)
 
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
-    return keyboard
+    return keyboard_rows
 
 
 @dispatcher.callback_query(lambda call: call.data.startswith("current/"))
@@ -95,8 +98,9 @@ async def process_calendar_selection(callback: types.CallbackQuery):
     try:
         current_date = datetime.now()
         data = callback.data.split("/")
+        print(data)
+        year, month = map(int, data[1:])
         if data[0] in ["prev_month", "next_month"]:
-            year, month = map(int, data[1:])
             month += 1 if data[0] == "next_month" else -1
             if month > 12:
                 year += 1
@@ -204,6 +208,8 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
     if work_day is not None:
         await message.reply("Запись на сегодня уже создана.")
         return
+    await message.answer(text="Выберите месяц для просмотра отработанных дней:",
+                         reply_markup=buttons_keyboard(current_date, "choice_day"))
     await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
 
@@ -252,7 +258,6 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
                              "Для продолжения пройдите регистрацию /register.\n")
         return
     current_date = datetime.now()
-    # await create_calendar(current_date.year, current_date.month)
     await message.answer("Выберите месяц для просмотра отработанных дней:", reply_markup=buttons_keyboard(current_date))
     return
 
