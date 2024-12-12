@@ -28,24 +28,24 @@ def buttons_keyboard(data, keyboard_type: Literal["month_year", "choice_day"] = 
     """
     buttons_month_year = [
         types.InlineKeyboardButton(text=f"< {calendar.month_abbr[data.month - 1 if data.month > 1 else 12]}",
-                                   callback_data=f"prev_month/{data.year}/{data.month}"),
+                                   callback_data=f"month_prev/{data.year}/{data.month}"),
         types.InlineKeyboardButton(text=f"{calendar.month_name[data.month]} {data.year}",
                                    callback_data=f"current/{data.year}/{data.month}"),
         types.InlineKeyboardButton(text=f"{calendar.month_abbr[data.month + 1 if data.month < 12 else 1]} >",
-                                   callback_data=f"next_month/{data.year}/{data.month}"),
+                                   callback_data=f"month_next/{data.year}/{data.month}"),
     ]
     if keyboard_type == "month_year":
         buttons = [buttons_month_year]
     elif keyboard_type == "choice_day":
         calendar_keyboard = create_calendar(data.year, data.month)
-        buttons = [buttons_month_year] + calendar_keyboard
+        buttons = calendar_keyboard
     else:
         buttons = []
 
     return types.InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def create_calendar(year: int, month: int) -> list:
+def create_calendar(year: int, month: int):
     """Функция для отрисовки кнопок календаря."""
     cal = calendar.monthcalendar(year, month)
     keyboard_rows = []
@@ -56,52 +56,32 @@ def create_calendar(year: int, month: int) -> list:
                 row.append(types.InlineKeyboardButton(text="", callback_data="empty"))
             else:
                 date_str = f"{day:02}-{month:02}-{year}"
-                row.append(types.InlineKeyboardButton(text=str(day), callback_data=date_str))
+                row.append(types.InlineKeyboardButton(text=str(day), callback_data=f"date/{date_str}"))
         keyboard_rows.append(row)
+
+    navigation_row = [
+        types.InlineKeyboardButton(text=f"< {calendar.month_abbr[month - 1 if month > 1 else 12]}",
+                                   callback_data=f"month_prev_date/{year}/{month}"),
+        types.InlineKeyboardButton(text=f"{calendar.month_name[month]} {year}",
+                                   callback_data=f" "),
+        types.InlineKeyboardButton(text=f"{calendar.month_abbr[month + 1 if month < 12 else 1]} >",
+                                   callback_data=f"month_next_date/{year}/{month}"),
+    ]
+    keyboard_rows.insert(0, navigation_row)
 
     return keyboard_rows
 
 
-@dispatcher.callback_query(lambda call: call.data.startswith("current/"))
-async def show_work_day(callback: types.CallbackQuery) -> None:
-    user_id = callback.message.chat.id
-    await callback.answer()
-    data = callback.data.split("/")
-    if data[0] == "current":
-        year, month = map(int, callback.data.split("/")[1:])
-        work_date = f"-{month:02}-{year}"
-        production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
-        sum_total = 0
-        if not (user_work_days := list_work_days(user_uid=user_id, work_month_year=work_date)):
-            await callback.message.edit_text(f"Вы не создали ни одной записи отработанных часов на "
-                                             f"{calendar.month_name[month]}.\n"
-                                             f"Норма часов в месяце: {production_calendar['working_hours']}.\n"
-                                             f"Рабочих дней в месяце: {production_calendar['work_days']}.",
-                                             reply_markup=None)
-            return
-        total_day = len(user_work_days)
-        for user_work_day in user_work_days:
-            sum_total += user_work_day.work_total
-            await callback.message.answer(
-                f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до "
-                f"{user_work_day.work_finish}")
-        await callback.message.edit_text(f"Всего часов отработано: {sum_total},\n"
-                                         f"Всего дней отработано: {total_day},\n"
-                                         f"Норма часов в месяце: {production_calendar['working_hours']},\n"
-                                         f"Рабочих дней в месяце: {production_calendar['work_days']}")
-        return
-
-
-@dispatcher.callback_query(lambda call: call.data)
+@dispatcher.callback_query(lambda call: call.data.startswith("month_"))
 async def process_calendar_selection(callback: types.CallbackQuery):
     await callback.answer()
     try:
         current_date = datetime.now()
         data = callback.data.split("/")
-        print(data)
+        print(callback.data)
         year, month = map(int, data[1:])
-        if data[0] in ["prev_month", "next_month"]:
-            month += 1 if data[0] == "next_month" else -1
+        if data[0] in ["month_prev", "month_next"]:
+            month += 1 if data[0] == "month_next" else -1
             if month > 12:
                 year += 1
                 month = 1
@@ -116,10 +96,6 @@ async def process_calendar_selection(callback: types.CallbackQuery):
             return
     except (IndexError, ValueError):
         await callback.message.answer("Ошибка обработки данных.")
-
-
-async def generate_start_link(our_bot: Bot):
-    return await create_start_link(our_bot, setting.ACCESS_KEY)
 
 
 @dispatcher.message(Command("help"))
@@ -262,6 +238,36 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
     return
 
 
+@dispatcher.callback_query(lambda call: call.data.startswith("current/"))
+async def show_work_day(callback: types.CallbackQuery) -> None:
+    user_id = callback.message.chat.id
+    await callback.answer()
+    data = callback.data.split("/")
+    if data[0] == "current":
+        year, month = map(int, callback.data.split("/")[1:])
+        work_date = f"-{month:02}-{year}"
+        production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
+        sum_total = 0
+        if not (user_work_days := list_work_days(user_uid=user_id, work_month_year=work_date)):
+            await callback.message.edit_text(f"Вы не создали ни одной записи отработанных часов на "
+                                             f"{calendar.month_name[month]}.\n"
+                                             f"Норма часов в месяце: {production_calendar['working_hours']}.\n"
+                                             f"Рабочих дней в месяце: {production_calendar['work_days']}.",
+                                             reply_markup=None)
+            return
+        total_day = len(user_work_days)
+        for user_work_day in user_work_days:
+            sum_total += user_work_day.work_total
+            await callback.message.answer(
+                f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до "
+                f"{user_work_day.work_finish}")
+        await callback.message.edit_text(f"Всего часов отработано: {sum_total},\n"
+                                         f"Всего дней отработано: {total_day},\n"
+                                         f"Норма часов в месяце: {production_calendar['working_hours']},\n"
+                                         f"Рабочих дней в месяце: {production_calendar['work_days']}")
+        return
+
+
 async def set_commands(is_admin):
     if is_admin:
         commands = [
@@ -278,6 +284,10 @@ async def set_commands(is_admin):
             BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeDefault())
+
+
+async def generate_start_link(our_bot: Bot):
+    return await create_start_link(our_bot, setting.ACCESS_KEY)
 
 
 async def main():
