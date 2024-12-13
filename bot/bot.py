@@ -13,7 +13,7 @@ from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking, RegisterStates
 from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar, \
-    get_work_day, check_user_registration
+    get_work_day, check_user_registration, calendar_selection
 
 # locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
@@ -78,22 +78,20 @@ async def process_calendar_selection(callback: types.CallbackQuery):
     try:
         current_date = datetime.now()
         data = callback.data.split("/")
-        print(callback.data)
         year, month = map(int, data[1:])
         if data[0] in ["month_prev", "month_next"]:
-            month += 1 if data[0] == "month_next" else -1
-            if month > 12:
-                year += 1
-                month = 1
-            elif month < 1:
-                year -= 1
-                month = 12
-
-            current_date = current_date.replace(year=year, month=month)
+            date = calendar_selection(month, year, data[0])
+            current_date = current_date.replace(year=date["year"], month=date["month"])
             buttons_keyboard(current_date)
             await callback.message.edit_text("Выберите месяц для просмотра отработанных дней:",
                                              reply_markup=buttons_keyboard(current_date))
             return
+        if data[0] in ["month_prev_date", "month_next_date"]:
+            date = calendar_selection(month, year, data[0])
+            current_date = current_date.replace(year=date["year"], month=date["month"])
+            buttons_keyboard(current_date)
+            await callback.message.edit_text(text="Выберите день для записи отработанных часов:",
+                                             reply_markup=buttons_keyboard(current_date, "choice_day"))
     except (IndexError, ValueError):
         await callback.message.answer("Ошибка обработки данных.")
 
@@ -184,7 +182,7 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
     if work_day is not None:
         await message.reply("Запись на сегодня уже создана.")
         return
-    await message.answer(text="Выберите месяц для просмотра отработанных дней:",
+    await message.answer(text="Выберите день для записи отработанных часов::",
                          reply_markup=buttons_keyboard(current_date, "choice_day"))
     await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
