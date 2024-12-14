@@ -198,7 +198,7 @@ async def date_choice(callback: types.CallbackQuery, state: FSMContext):
     work_day_in_db = get_work_day(chat_id, data[1])
     await state.update_data(work_day_in_db=work_day_in_db)
     await state.update_data(date_time=data[1])
-    await callback.message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
+    await callback.message.edit_text("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
 
 
