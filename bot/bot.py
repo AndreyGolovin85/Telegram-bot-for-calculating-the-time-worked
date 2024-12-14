@@ -294,6 +294,7 @@ async def set_commands(is_admin):
             BotCommand(command="register", description="Команда для регистрации"),
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
             BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
+            BotCommand(command="help", description="Справка по командам"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeChat(chat_id=ADMIN_ID))
 
@@ -302,6 +303,7 @@ async def set_commands(is_admin):
             BotCommand(command="register", description="Команда для регистрации"),
             BotCommand(command="write_work_time", description="Команда для записи отработанного времени"),
             BotCommand(command="show_work_time", description="Команда для просмотра отработанного времени"),
+            BotCommand(command="help", description="Справка по командам"),
         ]
         await bot.set_my_commands(commands, BotCommandScopeDefault())
 
