@@ -83,7 +83,7 @@ async def process_calendar_selection(callback: types.CallbackQuery):
             date = calendar_selection(month, year, data[0])
             current_date = current_date.replace(year=date["year"], month=date["month"])
             buttons_keyboard(current_date)
-            await callback.message.edit_text("Выберите месяц для просмотра отработанных дней:",
+            await callback.message.edit_text(text="Выберите месяц для просмотра отработанных дней:",
                                              reply_markup=buttons_keyboard(current_date))
             return
         if data[0] in ["month_prev_date", "month_next_date"]:
@@ -178,13 +178,27 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
     chat_id = message.chat.id
     current_date = datetime.now()
     work_date = current_date.strftime("%d-%m-%Y")
-    work_day = get_work_day(chat_id, work_date)
-    if work_day is not None:
-        await message.reply("Запись на сегодня уже создана.")
+    work_day_in_db = get_work_day(chat_id, work_date)
+    await state.update_data(work_day_in_db=work_day_in_db)
+    if work_day_in_db is not None:
+        await message.reply(f"Запись на {work_date} уже создана.")
+        await message.answer(text="Выберите день для записи отработанных часов:",
+                             reply_markup=buttons_keyboard(current_date, "choice_day"))
         return
-    await message.answer(text="Выберите день для записи отработанных часов::",
-                         reply_markup=buttons_keyboard(current_date, "choice_day"))
     await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
+    await state.set_state(TimeTracking.start_time)
+
+
+@dispatcher.callback_query(lambda call: call.data.startswith("date"))
+async def date_choice(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    data = callback.data.split("/")
+    await callback.message.answer(text=f"{data[1]}")
+    chat_id = callback.message.chat.id
+    work_day_in_db = get_work_day(chat_id, data[1])
+    await state.update_data(work_day_in_db=work_day_in_db)
+    await state.update_data(date_time=data[1])
+    await callback.message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
 
 
@@ -208,10 +222,17 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
         return
     await state.update_data(end_time=end_time)
     data = await state.get_data()
+    if data.get("work_day_in_db") is not None:
+        await message.reply(f"Запись отработанного времени на {data.get('date_time')} была создана ранее.")
+        await state.set_state(None)
+        return
     start_time = data.get("start_time")
     work_time = count_work_time(data.get("start_time"), data.get("end_time"))
     current_date = datetime.now()
-    work_date = current_date.strftime("%d-%m-%Y")
+    if data.get("date_time") is not None:
+        work_date = data.get("date_time")
+    else:
+        work_date = current_date.strftime("%d-%m-%Y")
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
 
     await message.reply(
@@ -232,7 +253,8 @@ async def cmd_work_time(message: types.Message, command: CommandObject) -> None:
                              "Для продолжения пройдите регистрацию /register.\n")
         return
     current_date = datetime.now()
-    await message.answer("Выберите месяц для просмотра отработанных дней:", reply_markup=buttons_keyboard(current_date))
+    await message.answer(text="Выберите месяц для просмотра отработанных дней:",
+                         reply_markup=buttons_keyboard(current_date))
     return
 
 
