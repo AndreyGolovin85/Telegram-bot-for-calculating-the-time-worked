@@ -18,6 +18,17 @@ def get_production_calendar(month: str, year: str) -> dict:
             "working_hours": response["working_hours"]}
 
 
+def calendar_selection(month: int, year: int, data: str):
+    month += 1 if data == "month_next" or data == "month_next_date" else -1
+    if month > 12:
+        year += 1
+        month = 1
+    elif month < 1:
+        year -= 1
+        month = 12
+    return {"month": month, "year": year}
+
+
 def time_valid(input_time: str) -> bool:
     try:
         hours = int(input_time.split(":")[0])
