@@ -192,13 +192,16 @@ async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
 @dispatcher.callback_query(lambda call: call.data.startswith("date"))
 async def date_choice(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
-    data = callback.data.split("/")
-    await callback.message.answer(text=f"{data[1]}")
+    data_call = callback.data.split("/")
+    await callback.message.edit_text(text=f"Вы выбрали дату: {data_call[1]}")
     chat_id = callback.message.chat.id
-    work_day_in_db = get_work_day(chat_id, data[1])
-    await state.update_data(work_day_in_db=work_day_in_db)
-    await state.update_data(date_time=data[1])
-    await callback.message.edit_text("Отправьте время начала работы в формате ЧЧ:ММ.")
+    work_day_in_db = get_work_day(chat_id, data_call[1])
+    if work_day_in_db is not None:
+        await callback.message.edit_text(f"Запись отработанного времени на {data_call[1]} была создана ранее.")
+        await state.set_state(None)
+        return
+    await state.update_data(work_date=data_call[1])
+    await callback.message.answer("Отправьте время начала работы в формате ЧЧ:ММ.")
     await state.set_state(TimeTracking.start_time)
 
 
@@ -222,19 +225,14 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
         return
     await state.update_data(end_time=end_time)
     data = await state.get_data()
-    if data.get("work_day_in_db") is not None:
-        await message.reply(f"Запись отработанного времени на {data.get('date_time')} была создана ранее.")
-        await state.set_state(None)
-        return
     start_time = data.get("start_time")
     work_time = count_work_time(data.get("start_time"), data.get("end_time"))
     current_date = datetime.now()
-    if data.get("date_time") is not None:
-        work_date = data.get("date_time")
+    if data.get("work_date") is not None:
+        work_date = data.get("work_date")
     else:
         work_date = current_date.strftime("%d-%m-%Y")
     await create_work_time(chat_id, work_date, start_time, end_time, work_time)
-
     await message.reply(
         "Вы отработали:\n"
         f"Время начала работы: {data.get('start_time')}\n"
@@ -242,7 +240,7 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
         f"Дата: {work_date}\n"
         f"Отработано сегодня: {work_time} часов."
     )
-    await state.set_state(None)
+    await state.clear()
     return
 
 
