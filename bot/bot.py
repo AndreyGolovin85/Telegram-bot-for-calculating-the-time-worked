@@ -12,8 +12,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking, RegisterStates
-from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, get_production_calendar, \
-    get_work_day, check_user_registration, calendar_selection
+from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, \
+    get_work_day, check_user_registration, calendar_selection, answer_reply, get_work_day_by_id, delete_work_day_by_id
 
 # locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
@@ -21,24 +21,35 @@ ADMIN_ID = int(setting.ADMIN_ID)
 dispatcher = Dispatcher()
 
 
-def buttons_keyboard(data, keyboard_type: Literal["month_year", "choice_day"] = "month_year") \
+def buttons_keyboard(data,
+                     keyboard_type: Literal["month_year", "choice_day", "work_day", "delete_or_change"] = "month_year") \
         -> types.InlineKeyboardMarkup:
     """
     Формирует клавиатуру в зависимости от нужного варианта.
     """
-    buttons_month_year = [
-        types.InlineKeyboardButton(text=f"< {calendar.month_abbr[data.month - 1 if data.month > 1 else 12]}",
-                                   callback_data=f"month_prev/{data.year}/{data.month}"),
-        types.InlineKeyboardButton(text=f"{calendar.month_name[data.month]} {data.year}",
-                                   callback_data=f"current/{data.year}/{data.month}"),
-        types.InlineKeyboardButton(text=f"{calendar.month_abbr[data.month + 1 if data.month < 12 else 1]} >",
-                                   callback_data=f"month_next/{data.year}/{data.month}"),
-    ]
     if keyboard_type == "month_year":
-        buttons = [buttons_month_year]
+        buttons = [[
+            types.InlineKeyboardButton(text=f"< {calendar.month_abbr[data.month - 1 if data.month > 1 else 12]}",
+                                       callback_data=f"month_prev/{data.year}/{data.month}"),
+            types.InlineKeyboardButton(text=f"{calendar.month_name[data.month]} {data.year}",
+                                       callback_data=f"current/{data.year}/{data.month}"),
+            types.InlineKeyboardButton(text=f"{calendar.month_abbr[data.month + 1 if data.month < 12 else 1]} >",
+                                       callback_data=f"month_next/{data.year}/{data.month}"),
+        ]]
     elif keyboard_type == "choice_day":
         calendar_keyboard = create_calendar(data.year, data.month)
         buttons = calendar_keyboard
+    elif keyboard_type == "work_day":
+        buttons = []
+        for user_work_day in data:
+            button = types.InlineKeyboardButton(
+                text=f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до {user_work_day.work_finish}",
+                callback_data=f"work_day_details/{user_work_day.id}"
+            )
+            buttons.append([button])
+    elif keyboard_type == "delete_or_change":
+        buttons = [[types.InlineKeyboardButton(text="Удалить", callback_data="delete"),
+                    types.InlineKeyboardButton(text="Изменить", callback_data="change"), ], ]
     else:
         buttons = []
 
@@ -264,26 +275,45 @@ async def show_work_day(callback: types.CallbackQuery) -> None:
     if data[0] == "current":
         year, month = map(int, callback.data.split("/")[1:])
         work_date = f"-{month:02}-{year}"
-        production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
-        sum_total = 0
         if not (user_work_days := list_work_days(user_uid=user_id, work_month_year=work_date)):
-            await callback.message.edit_text(f"Вы не создали ни одной записи отработанных часов на "
-                                             f"{calendar.month_name[month]}.\n"
-                                             f"Норма часов в месяце: {production_calendar['working_hours']}.\n"
-                                             f"Рабочих дней в месяце: {production_calendar['work_days']}.",
-                                             reply_markup=None)
+            await callback.message.edit_text(answer_reply(month=month, year=year, user_work_days=None).as_html())
             return
-        total_day = len(user_work_days)
-        for user_work_day in user_work_days:
-            sum_total += user_work_day.work_total
-            await callback.message.answer(
-                f"{user_work_day.work_date} - {user_work_day.work_total} с {user_work_day.work_start} до "
-                f"{user_work_day.work_finish}")
-        await callback.message.edit_text(f"Всего часов отработано: {sum_total},\n"
-                                         f"Всего дней отработано: {total_day},\n"
-                                         f"Норма часов в месяце: {production_calendar['working_hours']},\n"
-                                         f"Рабочих дней в месяце: {production_calendar['work_days']}")
+        await callback.message.answer(text="Ваши отработанные дни:",
+                                      reply_markup=buttons_keyboard(user_work_days, "work_day"))
+        await callback.message.edit_text(
+            answer_reply(month=month, year=year, user_work_days=user_work_days,
+                         sum_total=sum(day.work_total for day in user_work_days)).as_html()
+        )
         return
+
+
+@dispatcher.callback_query(lambda call: call.data.startswith("work_day_details/"))
+async def show_work_day(callback: types.CallbackQuery, state: FSMContext) -> None:
+    data = callback.data.split("/")
+    work_day = get_work_day_by_id(int(data[1]))
+    await callback.message.answer(text=f"Вы выбрали дату: {work_day.work_date}",
+                                  reply_markup=buttons_keyboard(data[1], "delete_or_change"))
+    await state.update_data(work_day=int(data[1]))
+
+
+@dispatcher.callback_query(lambda call: call.data in ["delete", "change"])
+async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    data = await state.get_data()
+    if callback.data == "delete":
+        delete_work_day = delete_work_day_by_id(data["work_day"])
+        if delete_work_day:
+            await callback.message.edit_text("Запись удалена.")
+            print(data["work_day"])
+            await state.clear()
+            return
+        await callback.message.edit_text("Не удалось удалить запись.")
+        await state.clear()
+        return
+    elif callback.data == "change":
+        await callback.message.edit_text("Запись изменена.")
+        print(data)
+        await state.clear()
 
 
 async def set_commands(is_admin):

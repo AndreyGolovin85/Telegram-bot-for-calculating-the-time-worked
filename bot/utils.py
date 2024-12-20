@@ -1,11 +1,31 @@
 import logging
+import calendar
 from datetime import datetime
 import requests
+from aiogram.utils.formatting import as_list, Text
 
 from models import User, Session, TimeWork
 from custom_types import UserDTO, TimeWorkDTO
 
 import settings as setting
+
+
+def answer_reply(month: int, year: int, user_work_days: list | None, sum_total=0) -> Text:
+    production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
+    if user_work_days is None:
+        return as_list(
+            f"Вы не создали ни одной записи отработанных часов на "
+            f"{calendar.month_name[month]}.\n"
+            f"Норма часов в месяце: {production_calendar['working_hours']}.\n"
+            f"Рабочих дней в месяце: {production_calendar['work_days']}."
+        )
+    total_day = len(user_work_days)
+    return as_list(
+        f"Всего часов отработано: {sum_total},\n"
+        f"Всего дней отработано: {total_day},\n"
+        f"Норма часов в месяце: {production_calendar['working_hours']},\n"
+        f"Рабочих дней в месяце: {production_calendar['work_days']}"
+    )
 
 
 def get_production_calendar(month: str, year: str) -> dict:
@@ -132,3 +152,30 @@ def list_work_days(user_uid, work_month_year: str | None = None) -> list:
 def get_work_day(user_uid: int, day: str) -> TimeWork | None:
     with Session() as session:
         return session.query(TimeWork).filter_by(user_uid=user_uid, work_date=day).one_or_none()
+
+
+def get_work_day_by_id(work_day_id: int) -> TimeWork | None:
+    """Получает тикет из базы данных по его id."""
+    with Session() as session:
+        work_day: TimeWork | None = session.query(TimeWork).filter_by(id=work_day_id).one_or_none()
+        if not work_day:
+            print(f"Тикет с id {work_day_id} не найден!")
+            return
+        return work_day
+
+
+def delete_work_day_by_id(model_id: int) -> bool:
+    """Удаляет запись из базы данных по ID."""
+    with Session() as session:
+        try:
+            work_day = session.query(TimeWork).filter(TimeWork.id == model_id).first()
+            if work_day:
+                session.delete(work_day)
+                session.commit()
+                return True
+            else:
+                return False
+        except Exception as e:
+            session.rollback()
+            print(f"Ошибка при удалении записи: {e}")
+            return False
