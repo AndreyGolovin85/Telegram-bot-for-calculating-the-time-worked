@@ -124,6 +124,7 @@ async def create_work_time(user_uid: int, work_date: str, work_start: str, work_
 
 
 def add_work_time(time_data: TimeWorkDTO) -> int:
+    """Создает запись отработанного дня в базу."""
     with Session() as session:
         new_time = TimeWork(
             user_uid=time_data.user_uid,
@@ -150,12 +151,13 @@ def list_work_days(user_uid, work_month_year: str | None = None) -> list:
 
 
 def get_work_day(user_uid: int, day: str) -> TimeWork | None:
+    """Получает запись отработанного дня из базы данных по user_uid и дате."""
     with Session() as session:
         return session.query(TimeWork).filter_by(user_uid=user_uid, work_date=day).one_or_none()
 
 
 def get_work_day_by_id(work_day_id: int) -> TimeWork | None:
-    """Получает тикет из базы данных по его id."""
+    """Получает запись отработанного дня из базы данных по его id."""
     with Session() as session:
         work_day: TimeWork | None = session.query(TimeWork).filter_by(id=work_day_id).one_or_none()
         if not work_day:
@@ -164,18 +166,33 @@ def get_work_day_by_id(work_day_id: int) -> TimeWork | None:
         return work_day
 
 
-def delete_work_day_by_id(model_id: int) -> bool:
+def delete_work_day_by_id(work_day_id: int) -> bool:
     """Удаляет запись из базы данных по ID."""
     with Session() as session:
         try:
-            work_day = session.query(TimeWork).filter(TimeWork.id == model_id).first()
+            work_day = session.query(TimeWork).filter(TimeWork.id == work_day_id).one_or_none()
             if work_day:
                 session.delete(work_day)
                 session.commit()
                 return True
-            else:
-                return False
+            return False
         except Exception as e:
             session.rollback()
             print(f"Ошибка при удалении записи: {e}")
+            return False
+
+
+def edit_work_day_by_id(work_day_id: int) -> bool:
+    """Обновляет запись об отработанном дне по ID."""
+    with Session() as session:
+        try:
+            work_day = session.query(TimeWork).filter_by(id=work_day_id).one_or_none()
+            if work_day:
+                work_day.updated_at = datetime.now(),
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            print(f"Ошибка при обновлении записи: {e}")
             return False

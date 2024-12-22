@@ -13,7 +13,8 @@ from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking, RegisterStates
 from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, \
-    get_work_day, check_user_registration, calendar_selection, answer_reply, get_work_day_by_id, delete_work_day_by_id
+    get_work_day, check_user_registration, calendar_selection, answer_reply, get_work_day_by_id, delete_work_day_by_id, \
+    edit_work_day_by_id
 
 # locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
@@ -293,6 +294,7 @@ async def show_work_day(callback: types.CallbackQuery, state: FSMContext) -> Non
     work_day = get_work_day_by_id(int(data[1]))
     await callback.message.answer(text=f"Вы выбрали дату: {work_day.work_date}",
                                   reply_markup=buttons_keyboard(data[1], "delete_or_change"))
+    await callback.answer()
     await state.update_data(work_day=int(data[1]))
 
 
@@ -304,7 +306,6 @@ async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> N
         delete_work_day = delete_work_day_by_id(data["work_day"])
         if delete_work_day:
             await callback.message.edit_text("Запись удалена.")
-            print(data["work_day"])
             await state.clear()
             return
         await callback.message.edit_text("Не удалось удалить запись.")
@@ -312,7 +313,7 @@ async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> N
         return
     elif callback.data == "change":
         await callback.message.edit_text("Запись изменена.")
-        print(data)
+        edit_work_day = edit_work_day_by_id(data["work_day"])
         await state.clear()
 
 
