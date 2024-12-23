@@ -12,9 +12,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking, RegisterStates
-from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, \
+from utils import time_valid, register_user, create_work_time, list_work_days, \
     get_work_day, check_user_registration, calendar_selection, answer_reply, get_work_day_by_id, delete_work_day_by_id, \
-    edit_work_day_by_id
+    edit_work_day_by_id, answer_reply_work_day
 
 # locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
@@ -238,20 +238,13 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
     await state.update_data(end_time=end_time)
     data = await state.get_data()
     start_time = data.get("start_time")
-    work_time = count_work_time(data.get("start_time"), data.get("end_time"))
     current_date = datetime.now()
     if data.get("work_date") is not None:
         work_date = data.get("work_date")
     else:
         work_date = current_date.strftime("%d-%m-%Y")
-    await create_work_time(chat_id, work_date, start_time, end_time, work_time)
-    await message.reply(
-        "Вы отработали:\n"
-        f"Время начала работы: {data.get('start_time')}\n"
-        f"Время окончания работы: {data.get('end_time')}\n"
-        f"Дата: {work_date}\n"
-        f"Отработано сегодня: {work_time} часов."
-    )
+    await create_work_time(chat_id, work_date, start_time, end_time)
+    await message.reply(answer_reply_work_day(start_time, end_time, work_date).as_html())
     await state.clear()
     return
 
