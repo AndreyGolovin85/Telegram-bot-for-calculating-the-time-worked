@@ -28,6 +28,17 @@ def answer_reply(month: int, year: int, user_work_days: list | None, sum_total=0
     )
 
 
+def answer_reply_work_day(start_time: str, end_time: str, work_date: str) -> Text:
+    work_time = count_work_time(start_time, end_time)
+    return as_list(
+        "Вы отработали:\n"
+        f"Время начала работы: {start_time}\n"
+        f"Время окончания работы: {end_time}\n"
+        f"Дата: {work_date}\n"
+        f"Отработано сегодня: {work_time} часов."
+    )
+
+
 def get_production_calendar(month: str, year: str) -> dict:
     url = f"https://production-calendar.ru/get-period/{setting.PRODUCTION_CALENDAR}/ru/{month}.{year}/json?region=23"
     response = requests.get(url).json()["statistic"]
@@ -100,6 +111,7 @@ def get_user_by_uid(user_uid: int) -> User | None:
 
 
 def add_user(user_data: UserDTO) -> User:
+    """Создает запись пользователя в базу."""
     with Session() as session:
         user = User(
             user_uid=user_data.user_uid,
@@ -113,17 +125,18 @@ def add_user(user_data: UserDTO) -> User:
         return user
 
 
-def work_time_data(user_uid: int, work_date: str, work_start: str, work_finish: str, work_total: float) -> TimeWorkDTO:
+def work_time_data(user_uid: int, work_date: str, work_start: str, work_finish: str) -> TimeWorkDTO:
     return TimeWorkDTO(user_uid=user_uid, work_date=work_date, work_start=work_start, work_finish=work_finish,
-                       work_total=work_total)
+                       work_total=count_work_time(work_start, work_finish))
 
 
-async def create_work_time(user_uid: int, work_date: str, work_start: str, work_finish: str, work_total: float):
-    time_data = work_time_data(user_uid, work_date, work_start, work_finish, work_total)
+async def create_work_time(user_uid: int, work_date: str, work_start: str, work_finish: str):
+    time_data = work_time_data(user_uid, work_date, work_start, work_finish)
     add_work_time(time_data)
 
 
 def add_work_time(time_data: TimeWorkDTO) -> int:
+    """Создает запись отработанного дня в базу."""
     with Session() as session:
         new_time = TimeWork(
             user_uid=time_data.user_uid,
@@ -150,12 +163,13 @@ def list_work_days(user_uid, work_month_year: str | None = None) -> list:
 
 
 def get_work_day(user_uid: int, day: str) -> TimeWork | None:
+    """Получает запись отработанного дня из базы данных по user_uid и дате."""
     with Session() as session:
         return session.query(TimeWork).filter_by(user_uid=user_uid, work_date=day).one_or_none()
 
 
 def get_work_day_by_id(work_day_id: int) -> TimeWork | None:
-    """Получает тикет из базы данных по его id."""
+    """Получает запись отработанного дня из базы данных по его id."""
     with Session() as session:
         work_day: TimeWork | None = session.query(TimeWork).filter_by(id=work_day_id).one_or_none()
         if not work_day:
@@ -164,18 +178,36 @@ def get_work_day_by_id(work_day_id: int) -> TimeWork | None:
         return work_day
 
 
-def delete_work_day_by_id(model_id: int) -> bool:
+def delete_work_day_by_id(work_day_id: int) -> bool:
     """Удаляет запись из базы данных по ID."""
     with Session() as session:
         try:
-            work_day = session.query(TimeWork).filter(TimeWork.id == model_id).first()
+            work_day = session.query(TimeWork).filter(TimeWork.id == work_day_id).one_or_none()
             if work_day:
                 session.delete(work_day)
                 session.commit()
                 return True
-            else:
-                return False
+            return False
         except Exception as e:
             session.rollback()
             print(f"Ошибка при удалении записи: {e}")
+            return False
+
+
+def edit_work_day_by_id(work_day_id: int, work_start: str, work_finish: str) -> bool:
+    """Обновляет запись об отработанном дне по ID."""
+    with Session() as session:
+        try:
+            work_day = session.query(TimeWork).filter_by(id=work_day_id).one_or_none()
+            if work_day:
+                work_day.work_start = work_start,
+                work_day.work_finish = work_finish,
+                work_day.work_total = count_work_time(work_start, work_finish),
+                work_day.updated_at = datetime.now(),
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            print(f"Ошибка при обновлении записи: {e}")
             return False

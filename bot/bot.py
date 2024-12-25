@@ -12,8 +12,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.deep_linking import create_start_link
 import settings as setting
 from custom_types import TimeTracking, RegisterStates
-from utils import time_valid, count_work_time, register_user, create_work_time, list_work_days, \
-    get_work_day, check_user_registration, calendar_selection, answer_reply, get_work_day_by_id, delete_work_day_by_id
+from utils import time_valid, register_user, create_work_time, list_work_days, \
+    get_work_day, check_user_registration, calendar_selection, answer_reply, get_work_day_by_id, delete_work_day_by_id, \
+    edit_work_day_by_id, answer_reply_work_day
 
 # locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
 bot = Bot(token=setting.API_TOKEN)
@@ -234,23 +235,21 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
     if time_valid(end_time) is False:
         await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
         return
-    await state.update_data(end_time=end_time)
     data = await state.get_data()
     start_time = data.get("start_time")
-    work_time = count_work_time(data.get("start_time"), data.get("end_time"))
     current_date = datetime.now()
+    print(data.get("make"))
+    if data.get("make") == "change":
+        await message.reply("Запись изменена.")
+        edit_work_day = edit_work_day_by_id(data["work_day"], start_time, end_time)
+        await state.clear()
+        return
     if data.get("work_date") is not None:
         work_date = data.get("work_date")
     else:
         work_date = current_date.strftime("%d-%m-%Y")
-    await create_work_time(chat_id, work_date, start_time, end_time, work_time)
-    await message.reply(
-        "Вы отработали:\n"
-        f"Время начала работы: {data.get('start_time')}\n"
-        f"Время окончания работы: {data.get('end_time')}\n"
-        f"Дата: {work_date}\n"
-        f"Отработано сегодня: {work_time} часов."
-    )
+    await create_work_time(chat_id, work_date, start_time, end_time)
+    await message.reply(answer_reply_work_day(start_time, end_time, work_date).as_html())
     await state.clear()
     return
 
@@ -293,6 +292,7 @@ async def show_work_day(callback: types.CallbackQuery, state: FSMContext) -> Non
     work_day = get_work_day_by_id(int(data[1]))
     await callback.message.answer(text=f"Вы выбрали дату: {work_day.work_date}",
                                   reply_markup=buttons_keyboard(data[1], "delete_or_change"))
+    await callback.answer()
     await state.update_data(work_day=int(data[1]))
 
 
@@ -304,16 +304,18 @@ async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> N
         delete_work_day = delete_work_day_by_id(data["work_day"])
         if delete_work_day:
             await callback.message.edit_text("Запись удалена.")
-            print(data["work_day"])
             await state.clear()
             return
         await callback.message.edit_text("Не удалось удалить запись.")
         await state.clear()
         return
     elif callback.data == "change":
-        await callback.message.edit_text("Запись изменена.")
-        print(data)
-        await state.clear()
+        await state.update_data(make="change")
+        await callback.message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
+        await state.set_state(TimeTracking.start_time)
+        # await callback.message.edit_text("Запись изменена.")
+        # edit_work_day = edit_work_day_by_id(data["work_day"])
+        # await state.clear()
 
 
 async def set_commands(is_admin):
