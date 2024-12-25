@@ -235,10 +235,15 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
     if time_valid(end_time) is False:
         await message.reply("Неверный формат. Введите время в формате ЧЧ:ММ.")
         return
-    await state.update_data(end_time=end_time)
     data = await state.get_data()
     start_time = data.get("start_time")
     current_date = datetime.now()
+    print(data.get("make"))
+    if data.get("make") == "change":
+        await message.reply("Запись изменена.")
+        edit_work_day = edit_work_day_by_id(data["work_day"], start_time, end_time)
+        await state.clear()
+        return
     if data.get("work_date") is not None:
         work_date = data.get("work_date")
     else:
@@ -305,9 +310,12 @@ async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> N
         await state.clear()
         return
     elif callback.data == "change":
-        await callback.message.edit_text("Запись изменена.")
-        edit_work_day = edit_work_day_by_id(data["work_day"])
-        await state.clear()
+        await state.update_data(make="change")
+        await callback.message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
+        await state.set_state(TimeTracking.start_time)
+        # await callback.message.edit_text("Запись изменена.")
+        # edit_work_day = edit_work_day_by_id(data["work_day"])
+        # await state.clear()
 
 
 async def set_commands(is_admin):

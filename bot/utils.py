@@ -194,12 +194,15 @@ def delete_work_day_by_id(work_day_id: int) -> bool:
             return False
 
 
-def edit_work_day_by_id(work_day_id: int) -> bool:
+def edit_work_day_by_id(work_day_id: int, work_start: str, work_finish: str) -> bool:
     """Обновляет запись об отработанном дне по ID."""
     with Session() as session:
         try:
             work_day = session.query(TimeWork).filter_by(id=work_day_id).one_or_none()
             if work_day:
+                work_day.work_start = work_start,
+                work_day.work_finish = work_finish,
+                work_day.work_total = count_work_time(work_start, work_finish),
                 work_day.updated_at = datetime.now(),
                 session.commit()
                 return True
