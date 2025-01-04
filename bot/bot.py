@@ -23,8 +23,8 @@ dispatcher = Dispatcher()
 
 
 def buttons_keyboard(data,
-                     keyboard_type: Literal["month_year", "choice_day", "work_day", "delete_or_change"] = "month_year") \
-        -> types.InlineKeyboardMarkup:
+                     keyboard_type: Literal["month_year", "choice_day", "work_day", "delete_or_change",
+                                            "next_or_choice"] = "month_year") -> types.InlineKeyboardMarkup:
     """
     Формирует клавиатуру в зависимости от нужного варианта.
     """
@@ -51,6 +51,9 @@ def buttons_keyboard(data,
     elif keyboard_type == "delete_or_change":
         buttons = [[types.InlineKeyboardButton(text="Удалить", callback_data="delete"),
                     types.InlineKeyboardButton(text="Изменить", callback_data="change"), ], ]
+    elif keyboard_type == "next_or_choice":
+        buttons = [[types.InlineKeyboardButton(text="Продолжить", callback_data="next"),
+                    types.InlineKeyboardButton(text="Выбрать дату", callback_data="choice"), ], ]
     else:
         buttons = []
 
@@ -182,23 +185,35 @@ async def process_name_and_department(message: types.Message, state: FSMContext)
 
 
 @dispatcher.message(Command("write_work_time"))
-async def cmd_start_work(message: types.Message, state: FSMContext) -> None:
+async def cmd_start_work(message: types.Message) -> None:
     if not check_user_registration(message.chat.id):
         await message.answer("Вы не зарегистрированы.\n"
                              "Для продолжения пройдите регистрацию /register.\n")
         return
-    chat_id = message.chat.id
+    await message.reply(text="Для записи отработанного времени за сегодняшний день нажмите 'Продолжить'.\n"
+                             "Или 'Выбрать дату', если желаете сделать запись отработанного времени на другой день.",
+                        reply_markup=buttons_keyboard(message.from_user.id, "next_or_choice"))
+
+
+@dispatcher.callback_query(lambda call: call.data in ["next", "choice"])
+async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> None:
+    chat_id = callback.message.chat.id
     current_date = datetime.now()
     work_date = current_date.strftime("%d-%m-%Y")
     work_day_in_db = get_work_day(chat_id, work_date)
     await state.update_data(work_day_in_db=work_day_in_db)
-    if work_day_in_db is not None:
-        await message.reply(f"Запись на {work_date} уже создана.")
-        await message.answer(text="Выберите день для записи отработанных часов:",
-                             reply_markup=buttons_keyboard(current_date, "choice_day"))
-        return
-    await message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
-    await state.set_state(TimeTracking.start_time)
+    await callback.answer()
+    if callback.data == "next":
+        if work_day_in_db is not None:
+            await callback.message.answer(f"Запись на {work_date} уже создана.")
+            await callback.message.answer(text="Выберите день для записи отработанных часов:",
+                                          reply_markup=buttons_keyboard(current_date, "choice_day"))
+            return
+        await callback.message.edit_text("Отправьте время начала работы в формате ЧЧ:ММ.")
+        await state.set_state(TimeTracking.start_time)
+    if callback.data == "choice":
+        await callback.message.edit_text(text="Выберите день для записи отработанных часов:",
+                                         reply_markup=buttons_keyboard(current_date, "choice_day"))
 
 
 @dispatcher.callback_query(lambda call: call.data.startswith("date"))
@@ -313,9 +328,6 @@ async def process_confirm(callback: types.CallbackQuery, state: FSMContext) -> N
         await state.update_data(make="change")
         await callback.message.reply("Отправьте время начала работы в формате ЧЧ:ММ.")
         await state.set_state(TimeTracking.start_time)
-        # await callback.message.edit_text("Запись изменена.")
-        # edit_work_day = edit_work_day_by_id(data["work_day"])
-        # await state.clear()
 
 
 async def set_commands(is_admin):
