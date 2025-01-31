@@ -96,15 +96,13 @@ async def process_calendar_selection(callback: types.CallbackQuery):
         year, month = map(int, data[1:])
         if data[0] in ["month_prev", "month_next"]:
             date = calendar_selection(month, year, data[0])
-            current_date = current_date.replace(year=date["year"], month=date["month"])
-            buttons_keyboard(current_date)
+            current_date = current_date.replace(year=date["year"], month=date["month"], day=1)
             await callback.message.edit_text(text="Выберите месяц для просмотра отработанных дней:",
                                              reply_markup=buttons_keyboard(current_date))
             return
         if data[0] in ["month_prev_date", "month_next_date"]:
             date = calendar_selection(month, year, data[0])
-            current_date = current_date.replace(year=date["year"], month=date["month"])
-            buttons_keyboard(current_date)
+            current_date = current_date.replace(year=date["year"], month=date["month"], day=1)
             await callback.message.edit_text(text="Выберите день для записи отработанных часов:",
                                              reply_markup=buttons_keyboard(current_date, "choice_day"))
     except (IndexError, ValueError):
@@ -253,7 +251,6 @@ async def process_end_time(message: types.Message, state: FSMContext) -> None:
     data = await state.get_data()
     start_time = data.get("start_time")
     current_date = datetime.now()
-    print(data.get("make"))
     if data.get("make") == "change":
         await message.reply("Запись изменена.")
         edit_work_day = edit_work_day_by_id(data["work_day"], start_time, end_time)

@@ -83,7 +83,7 @@ def count_work_time(start_time: str, end_time: str) -> float:
         else:
             total_hours = 24 + (total_minutes // 60)
             total_minutes %= 60
-        if total_hours <= 4:
+        if total_hours <= 5:
             total_hours = total_hours
         else:
             total_hours -= 1
