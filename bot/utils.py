@@ -1,5 +1,6 @@
 import logging
 import calendar
+import math
 from datetime import datetime
 import requests
 from aiogram.utils.formatting import as_list, Text
@@ -10,7 +11,7 @@ from custom_types import UserDTO, TimeWorkDTO
 import settings as setting
 
 
-def answer_reply(month: int, year: int, user_work_days: list | None, sum_total=0) -> Text:
+def answer_reply(month: int, year: int, user_work_days: list | None) -> Text:
     production_calendar = get_production_calendar(month=f"{month:02}", year=f"{year}")
     if user_work_days is None:
         return as_list(
@@ -21,7 +22,7 @@ def answer_reply(month: int, year: int, user_work_days: list | None, sum_total=0
         )
     total_day = len(user_work_days)
     return as_list(
-        f"Всего часов отработано: {sum_total},\n"
+        f"Всего часов отработано: {format_time(calculate_total_time(user_work_days))},\n"
         f"Всего дней отработано: {total_day},\n"
         f"Норма часов в месяце: {production_calendar['working_hours']},\n"
         f"Рабочих дней в месяце: {production_calendar['work_days']}"
@@ -35,7 +36,7 @@ def answer_reply_work_day(start_time: str, end_time: str, work_date: str) -> Tex
         f"Время начала работы: {start_time}\n"
         f"Время окончания работы: {end_time}\n"
         f"Дата: {work_date}\n"
-        f"Отработано сегодня: {work_time} часов."
+        f"Отработано сегодня: {format_time(work_time)} часов."
     )
 
 
@@ -69,6 +70,26 @@ def time_valid(input_time: str) -> bool:
     except ValueError:
         return False
     return False
+
+
+def calculate_total_time(user_work_days):
+    total_minutes = 0
+    for day in user_work_days:
+        round_time = round(day.work_total, 1)
+        hours = int(round_time)
+        minutes = int(round(round_time - hours, 1) * 100)
+        total_minutes += (hours * 60) + minutes
+    hours = int(total_minutes / 60)
+    minutes = round(60 * (total_minutes / 60 - hours), 2)
+    return float(f"{hours}.{int(minutes)}")
+
+
+def format_time(total_hours):
+    """Преобразует десятичные часы в формат 'X часов Y минут',
+       где дробная часть представляет минуты напрямую."""
+    hours = int(total_hours)
+    minutes = int(round((total_hours - hours), 1) * 100)
+    return f"{hours} часов {minutes} минут"
 
 
 def count_work_time(start_time: str, end_time: str) -> float:
@@ -155,7 +176,7 @@ def add_work_time(time_data: TimeWorkDTO) -> int:
 def list_work_days(user_uid, work_month_year: str | None = None) -> list:
     """Функция для выборки отработанных дней в месяце определенным пользователем."""
     with Session() as session:
-        select_work_days = session.query(TimeWork).filter_by(user_uid=user_uid).order_by(TimeWork.work_date)\
+        select_work_days = session.query(TimeWork).filter_by(user_uid=user_uid).order_by(TimeWork.work_date) \
             .filter(TimeWork.work_date.contains(work_month_year))
         work_days = [day for day in select_work_days]
 

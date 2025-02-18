@@ -292,8 +292,7 @@ async def show_work_day(callback: types.CallbackQuery) -> None:
         await callback.message.answer(text="Ваши отработанные дни:",
                                       reply_markup=buttons_keyboard(user_work_days, "work_day"))
         await callback.message.edit_text(
-            answer_reply(month=month, year=year, user_work_days=user_work_days,
-                         sum_total=sum(day.work_total for day in user_work_days)).as_html()
+            answer_reply(month=month, year=year, user_work_days=user_work_days).as_html()
         )
         return
 
