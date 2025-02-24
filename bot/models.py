@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, Integer, String, create_engine, Float, ForeignKey
+from sqlalchemy import DateTime, Integer, String, create_engine, Float, ForeignKey, BigInteger
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column, sessionmaker, relationship
 from datetime import datetime
 
@@ -19,7 +19,7 @@ class User(Base, sessionmaker):
     __tablename__ = "users"
 
     time_works: Mapped[list["TimeWork"]] = relationship("TimeWork", back_populates="user", init=False)
-    user_uid: Mapped[int] = mapped_column(Integer, unique=True)
+    user_uid: Mapped[int] = mapped_column(BigInteger, unique=True)
     first_name: Mapped[str] = mapped_column(String(30))
     last_name: Mapped[str] = mapped_column(String(30))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now())
