@@ -17,7 +17,7 @@ services:
     depends_on:
       - tgbot
     command: >
-      sh -c "python bot/bot.py"
+      sh -c "cd ./bot && alembic upgrade head && cd ../. && python bot/bot.py"
 
   tgbot:
     image: postgres:15.1-alpine

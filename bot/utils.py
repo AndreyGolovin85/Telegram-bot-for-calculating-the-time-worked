@@ -1,6 +1,5 @@
 import logging
 import calendar
-import math
 from datetime import datetime
 import requests
 from aiogram.utils.formatting import as_list, Text
@@ -36,7 +35,7 @@ def answer_reply_work_day(start_time: str, end_time: str, work_date: str) -> Tex
         f"Время начала работы: {start_time}\n"
         f"Время окончания работы: {end_time}\n"
         f"Дата: {work_date}\n"
-        f"Отработано сегодня: {format_time(work_time)} часов."
+        f"Отработано сегодня: {format_time(work_time)}."
     )
 
 
@@ -79,9 +78,9 @@ def calculate_total_time(user_work_days):
         hours = int(round_time)
         minutes = int(round(round_time - hours, 1) * 100)
         total_minutes += (hours * 60) + minutes
-    hours = int(total_minutes / 60)
-    minutes = round(60 * (total_minutes / 60 - hours), 2)
-    return float(f"{hours}.{int(minutes)}")
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    return float(f"{int(hours)}.{int(minutes)}")
 
 
 def format_time(total_hours):
