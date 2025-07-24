@@ -51,8 +51,8 @@ services:
       - "9399:9399"
     volumes:
       - source: ./sql_exporter.yml
-      - target: /etc/sql_exporter.yml
-      - read_only: true
+        target: /etc/sql_exporter.yml
+        read_only: true
     command: [ "--config.file=/etc/sql_exporter.yml" ]
 
 volumes:
