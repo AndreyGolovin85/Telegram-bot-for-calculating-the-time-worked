@@ -3,7 +3,7 @@ jobs:
     collectors: [database]
     static_configs:
       - targets:
-          tgbot: 'postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB?sslmode=disable&lock_timeout=5000'
+          tgbot: 'postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable'
 
 collectors:
   - collector_name: database
