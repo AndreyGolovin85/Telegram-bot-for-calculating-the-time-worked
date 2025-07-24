@@ -42,7 +42,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          source: "deploy/docker-compose.yml"
+          source: "deploy/"
           target: "appbot"
           strip_components: 1
       - name: deploy appbot
