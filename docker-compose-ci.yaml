@@ -37,5 +37,26 @@ services:
       timeout: 5s
       retries: 5
 
+  sql-exporter:
+    image: burningalchemist/sql_exporter:latest
+    container_name: sql-exporter
+    environment:
+      POSTGRES_USER: $POSTGRES_USER
+      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+      POSTGRES_HOST: $POSTGRES_HOST
+      POSTGRES_PORT: $POSTGRES_PORT
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "9399:9399"
+    volumes:
+      - type: bind
+        source: ./appbot/sql_exporter.yml
+        target: /etc/sql_exporter.yml
+        read_only: true
+    command: "--config.file=/etc/sql_exporter.yml"
+
 volumes:
     pgdata:
