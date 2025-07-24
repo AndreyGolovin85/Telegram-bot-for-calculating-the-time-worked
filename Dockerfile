@@ -8,7 +8,6 @@ ENV VIRTUAL_ENV=/appbot/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY requirements.txt .
-COPY sql_exporter.yml .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 CMD ["python", "bot/bot.py"]
