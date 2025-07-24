@@ -50,10 +50,7 @@ services:
     ports:
       - "9399:9399"
     volumes:
-      - type: bind
-        source: ./sql_exporter.yml
-        target: /etc/sql_exporter.yml
-        read_only: true
+      - ./sql_exporter.yml:/etc/sql_exporter.yml
     command: [ "--config.file=/etc/sql_exporter.yml" ]
 
 volumes:
