@@ -3,7 +3,7 @@ jobs:
     collectors: [database]
     static_configs:
       - targets:
-          tgbot: 'postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable'
+          tgbot: 'postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST_D:$POSTGRES_PORT/$POSTGRES_DB?sslmode=disable'
 
 collectors:
   - collector_name: database
@@ -66,3 +66,4 @@ collectors:
         values:
           - size
         query: SELECT datname, pg_database_size(datname) AS size FROM pg_database
+

@@ -53,5 +53,21 @@ services:
       - ./sql_exporter.yml:/etc/sql_exporter.yml
     command: [ "--config.file=/etc/sql_exporter.yml" ]
 
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus  # Теперь volume определен
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - sql-exporter
+
 volumes:
-    pgdata:
+  pgdata:
+  prometheus_data:
