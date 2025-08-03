@@ -36,11 +36,9 @@ services:
     ports:
       - "9399:9399"
     volumes:
-      - type: bind
-        source: C:\Users\Admin\Desktop\Telegram-bot-for-calculating-the-time-worked\sql_exporter.yml
-        target: /etc/sql_exporter.yml
-        read_only: true
-    command: [ "--config.file=/etc/sql_exporter.yml" ]
+      - ./sql_exporters/sql_exporter.yml:/sql_exporter.yml:ro
+      - ./sql_exporters/collector:/collector:ro
+    command: [ "--config.file=/sql_exporter.yml" ]
     depends_on:
       tgbot:
         condition: service_healthy
@@ -52,8 +50,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus  # Теперь volume определен
+      - ./prometheus/prometheus.yml:/prometheus.yml:ro
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'

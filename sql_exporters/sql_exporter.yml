@@ -1,0 +1,14 @@
+global:
+  scrape_timeout_offset: 500ms
+  min_interval: 0s
+  max_connections: 3
+  max_idle_connections: 3
+  max_connection_lifetime: 10m
+
+target:
+  name: "tgbot"
+  data_source_name: 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST_D}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable'
+  collectors: [tgbot*]  # Указываем имя коллектора, а не имя файла
+
+collector_files:
+  - "/collector/*.collector.yml"  # Путь к файлам коллекторов в контейнере
